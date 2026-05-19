@@ -74,7 +74,7 @@ function formatStatus(status: string) {
 }
 
 function buildInvoicePdfUrl(invoiceId: string) {
-  return `${getApiBaseUrl()}/payments/invoices/${invoiceId}/pdf`;
+  return `${getApiBaseUrl()}/invoices/${invoiceId}/pdf`;
 }
 
 export function CompanyDashboardClient({ session }: CompanyDashboardClientProps) {

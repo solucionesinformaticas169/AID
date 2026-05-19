@@ -1,7 +1,7 @@
 import { jwtVerify } from "jose";
 import { NextResponse, type NextRequest } from "next/server";
 
-const ACCESS_TOKEN_COOKIE = "aid_access_token";
+import { ACCESS_TOKEN_COOKIE } from "@/lib/auth/constants";
 
 const protectedRouteMap: Array<{ prefix: string; allowedRoles: string[] }> = [
   { prefix: "/candidato", allowedRoles: ["CANDIDATE"] },

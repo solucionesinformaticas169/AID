@@ -1,14 +1,14 @@
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
+import { ACCESS_TOKEN_COOKIE } from "./constants";
+
 export type SessionUser = {
   sub: string;
   email: string;
   role: string;
   companyId?: string | null;
 };
-
-const ACCESS_TOKEN_COOKIE = "aid_access_token";
 
 function getJwtSecret() {
   return new TextEncoder().encode(process.env.JWT_ACCESS_SECRET ?? "access-secret");

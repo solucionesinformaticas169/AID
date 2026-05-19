@@ -128,20 +128,28 @@ export type CheckoutPayload = {
   cancelUrl?: string;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+const BILLING_PROXY_BASE_URL = "/api/billing";
 
 function buildApiUrl(path: string) {
-  return `${API_BASE_URL}${path}`;
+  return `${PUBLIC_API_BASE_URL}${path}`;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(buildApiUrl(path), {
+function buildBillingProxyUrl(path: string) {
+  return `${BILLING_PROXY_BASE_URL}${path}`;
+}
+
+async function request<T>(path: string, init?: RequestInit, options?: { proxy?: "billing" | "public" }): Promise<T> {
+  const baseUrl =
+    options?.proxy === "billing" ? buildBillingProxyUrl(path) : buildApiUrl(path);
+  const response = await fetch(baseUrl, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
     cache: "no-store",
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -165,19 +173,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function getApiBaseUrl() {
-  return API_BASE_URL;
+  return BILLING_PROXY_BASE_URL;
 }
 
 export function getCompanyBillingSummary(companyId: string) {
-  return request<BillingSummaryResponse>(`/payments/company/${companyId}/billing-summary`);
+  return request<BillingSummaryResponse>(`/company/${companyId}/billing-summary`, undefined, {
+    proxy: "billing",
+  });
 }
 
 export function getCompanyPayments(companyId: string) {
-  return request<CompanyPayment[]>(`/payments/company/${companyId}`);
+  return request<CompanyPayment[]>(`/company/${companyId}`, undefined, {
+    proxy: "billing",
+  });
 }
 
 export function getCompanyInvoices(companyId: string) {
-  return request<CompanyInvoice[]>(`/payments/company/${companyId}/invoices`);
+  return request<CompanyInvoice[]>(`/company/${companyId}/invoices`, undefined, {
+    proxy: "billing",
+  });
 }
 
 export function getPlans() {
@@ -185,8 +199,10 @@ export function getPlans() {
 }
 
 export function createCheckout(payload: CheckoutPayload) {
-  return request<CheckoutResponse>("/payments/checkout", {
+  return request<CheckoutResponse>("/checkout", {
     method: "POST",
     body: JSON.stringify(payload),
+  }, {
+    proxy: "billing",
   });
 }
