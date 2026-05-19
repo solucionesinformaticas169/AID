@@ -1,0 +1,509 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleScope {
+  PLATFORM
+  COMPANY
+}
+
+enum DocumentType {
+  CV
+  ID
+  CERTIFICATE
+  LICENSE
+  OTHER
+}
+
+enum StorageProvider {
+  SUPABASE
+  S3
+}
+
+enum JobOfferStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+  CLOSED
+}
+
+enum JobApplicationStatus {
+  APPLIED
+  REVIEWING
+  SHORTLISTED
+  INTERVIEW
+  REJECTED
+  HIRED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  TEMPORARY
+  INTERNSHIP
+  FREELANCE
+}
+
+enum WorkModality {
+  ON_SITE
+  HYBRID
+  REMOTE
+}
+
+enum PlanCode {
+  FREE
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  TRANSFER
+  CASH
+  OTHER
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  PAYPHONE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  FAILED
+  VOID
+}
+
+enum CompanyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Role {
+  id           String        @id @default(uuid())
+  code         String        @unique
+  name         String
+  description  String?
+  scope        RoleScope
+  users        User[]
+  companyUsers CompanyUser[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  email              String              @unique
+  passwordHash       String
+  firstName          String
+  lastName           String
+  phone              String?
+  primaryRoleId      String?
+  primaryRole        Role?               @relation(fields: [primaryRoleId], references: [id], onDelete: SetNull)
+  isActive           Boolean             @default(true)
+  refreshTokenHash   String?
+  candidateProfile   CandidateProfile?
+  companyUsers       CompanyUser[]
+  applications       JobApplication[]
+  createdJobOffers   JobOffer[]          @relation("JobOfferCreatedBy")
+  candidateDocuments CandidateDocument[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model CandidateProfile {
+  id                 String              @id @default(uuid())
+  userId             String              @unique
+  headline           String?
+  city               String?
+  country            String?
+  birthDate          DateTime?
+  summary            String?
+  desiredSalary      Decimal?            @db.Decimal(12, 2)
+  linkedinUrl        String?
+  portfolioUrl       String?
+  profileCompletion  Int                 @default(0)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents          CandidateDocument[]
+  applications       JobApplication[]
+  educationRecords   Education[]
+  workExperiences    WorkExperience[]
+  languages          Language[]
+  certifications     Certification[]
+  references         Reference[]
+  achievements       Achievement[]
+  affirmativeActions AffirmativeAction[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model CandidateDocument {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  userId             String
+  type               DocumentType
+  storageProvider    StorageProvider
+  storagePath        String
+  fileName           String
+  mimeType           String
+  size               Int
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([candidateProfileId, type])
+}
+
+model Company {
+  id                   String         @id @default(uuid())
+  name                 String
+  slug                 String         @unique
+  taxId                String?        @unique
+  description          String?
+  website              String?
+  logoPath             String?
+  industry             String?
+  city                 String?
+  country              String?
+  billingEmail         String?
+  stripeCustomerId     String?
+  paypalCustomerId     String?
+  status               CompanyStatus  @default(PENDING)
+  freeJobPostsUsed     Int            @default(0)
+  freeJobPostsIncluded Int            @default(10)
+  companyUsers         CompanyUser[]
+  jobOffers            JobOffer[]
+  subscriptions        Subscription[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
+
+model CompanyUser {
+  id        String   @id @default(uuid())
+  companyId String
+  userId    String
+  roleId    String
+  isActive  Boolean  @default(true)
+  joinedAt  DateTime @default(now())
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, userId])
+  @@index([userId, isActive])
+}
+
+model JobOffer {
+  id                     String           @id @default(uuid())
+  companyId              String
+  createdByUserId        String
+  title                  String
+  slug                   String           @unique
+  description            String
+  requirements           String?
+  responsibilities       String?
+  benefits               String?
+  city                   String?
+  country                String?
+  modality               WorkModality?
+  employmentType         EmploymentType?
+  requiredEducationLevel String?
+  minimumYearsExperience Int              @default(0)
+  requiredLanguages      Json?
+  requiredCertifications Json?
+  salaryMin              Decimal?         @db.Decimal(12, 2)
+  salaryMax              Decimal?         @db.Decimal(12, 2)
+  status                 JobOfferStatus   @default(DRAFT)
+  freePublication        Boolean          @default(false)
+  priorityPublication    Boolean          @default(false)
+  publishedAt            DateTime?
+  closesAt               DateTime?
+  company                Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser          User             @relation("JobOfferCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  applications           JobApplication[]
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  @@index([companyId, status])
+}
+
+model JobApplication {
+  id                        String                   @id @default(uuid())
+  jobOfferId                String
+  candidateProfileId        String
+  userId                    String
+  status                    JobApplicationStatus     @default(APPLIED)
+  coverLetter               String?
+  source                    String?
+  selectedEducationIds      String[]
+  selectedWorkExperienceIds String[]
+  selectedCertificationIds  String[]
+  calculatedYearsExperience Decimal?                 @db.Decimal(6, 2)
+  meetsRequirements         Boolean                  @default(false)
+  compatibilityScore        Int                      @default(0)
+  compatibilityReport       Json?
+  appliedAt                 DateTime                 @default(now())
+  jobOffer                  JobOffer                 @relation(fields: [jobOfferId], references: [id], onDelete: Cascade)
+  candidateProfile          CandidateProfile         @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timelineEntries           JobApplicationTimeline[]
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+
+  @@unique([jobOfferId, candidateProfileId])
+  @@index([userId, status])
+}
+
+model JobApplicationTimeline {
+  id               String               @id @default(uuid())
+  jobApplicationId String
+  status           JobApplicationStatus
+  title            String
+  description      String?
+  createdAt        DateTime             @default(now())
+  jobApplication   JobApplication       @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([jobApplicationId, createdAt])
+}
+
+model Plan {
+  id                   String           @id @default(uuid())
+  code                 PlanCode         @unique
+  name                 String
+  description          String?
+  price                Decimal          @default(0) @db.Decimal(12, 2)
+  currency             String           @default("USD")
+  durationMonths       Int
+  jobPostLimit         Int?
+  priorityPublication  Boolean          @default(false)
+  advancedMetrics      Boolean          @default(false)
+  featuredCandidates   Boolean          @default(false)
+  includesFreePosts    Boolean          @default(false)
+  freeJobPostsIncluded Int              @default(0)
+  isActive             Boolean          @default(true)
+  subscriptions        Subscription[]
+  invoices             BillingInvoice[]
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+}
+
+model Subscription {
+  id                     String             @id @default(uuid())
+  companyId              String
+  planId                 String
+  provider               PaymentProvider?
+  externalSubscriptionId String?
+  externalCustomerId     String?
+  status                 SubscriptionStatus @default(ACTIVE)
+  startsAt               DateTime
+  endsAt                 DateTime?
+  autoRenew              Boolean            @default(false)
+  cancelAtPeriodEnd      Boolean            @default(false)
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  planSnapshot           Json?
+  company                Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan                   Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments               Payment[]
+  invoices               BillingInvoice[]
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@index([companyId, status])
+}
+
+model Payment {
+  id                String          @id @default(uuid())
+  subscriptionId    String
+  provider          PaymentProvider
+  amount            Decimal         @db.Decimal(12, 2)
+  currency          String          @default("USD")
+  status            PaymentStatus   @default(PENDING)
+  method            PaymentMethod
+  externalReference String?
+  providerPaymentId String?
+  checkoutUrl       String?
+  receiptUrl        String?
+  providerPayload   Json?
+  paidAt            DateTime?
+  subscription      Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  invoice           BillingInvoice?
+  webhookEvents     PaymentWebhookEvent[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([subscriptionId, status])
+}
+
+model BillingInvoice {
+  id                String          @id @default(uuid())
+  subscriptionId    String
+  planId            String
+  paymentId         String?         @unique
+  provider          PaymentProvider
+  status            InvoiceStatus   @default(DRAFT)
+  invoiceNumber     String          @unique
+  externalInvoiceId String?
+  invoicePdfPath    String?
+  invoiceUrl        String?
+  subtotal          Decimal         @db.Decimal(12, 2)
+  tax               Decimal         @default(0) @db.Decimal(12, 2)
+  total             Decimal         @db.Decimal(12, 2)
+  currency          String          @default("USD")
+  issuedAt          DateTime        @default(now())
+  dueAt             DateTime?
+  paidAt            DateTime?
+  providerPayload   Json?
+  subscription      Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  plan              Plan            @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payment           Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([subscriptionId, status])
+}
+
+model PaymentWebhookEvent {
+  id                    String          @id @default(uuid())
+  provider              PaymentProvider
+  providerEventId       String?
+  providerTransactionId String?
+  eventType             String
+  signatureValid        Boolean         @default(false)
+  processingStatus      String
+  message               String?
+  payload               Json
+  headers               Json?
+  paymentId             String?
+  payment               Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  createdAt             DateTime        @default(now())
+  processedAt           DateTime?
+
+  @@index([provider, providerEventId])
+  @@index([provider, providerTransactionId])
+  @@index([provider, processingStatus])
+}
+
+model Education {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  institution        String
+  degree             String
+  fieldOfStudy       String?
+  startDate          DateTime?
+  endDate            DateTime?
+  isCurrent          Boolean          @default(false)
+  description        String?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model WorkExperience {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  companyName        String
+  position           String
+  location           String?
+  startDate          DateTime?
+  endDate            DateTime?
+  isCurrent          Boolean          @default(false)
+  description        String?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model Language {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  name               String
+  proficiency        String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([candidateProfileId, name])
+}
+
+model Certification {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  name               String
+  issuer             String?
+  issueDate          DateTime?
+  expirationDate     DateTime?
+  credentialId       String?
+  credentialUrl      String?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model Reference {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  fullName           String
+  company            String?
+  position           String?
+  email              String?
+  phone              String?
+  relationship       String?
+  notes              String?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@map("candidate_references")
+}
+
+model Achievement {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  title              String
+  description        String?
+  achievedAt         DateTime?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model AffirmativeAction {
+  id                 String           @id @default(uuid())
+  candidateProfileId String
+  category           String
+  description        String?
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([candidateProfileId, category])
+}
