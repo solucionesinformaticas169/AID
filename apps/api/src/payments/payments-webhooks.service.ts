@@ -1,13 +1,15 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PaymentProvider, PaymentStatus, Prisma } from "@prisma/client";
 import Stripe from "stripe";
 
+import { AuditService } from "../audit/audit.service";
+import { AUDIT_ENTITY_TYPES } from "../audit/audit.constants";
+import { AppLoggerService } from "../observability/app-logger.service";
 import { PayphonePaymentProvider } from "./providers/payphone-payment.provider";
 import { PaypalPaymentProvider } from "./providers/paypal-payment.provider";
 import { StripePaymentProvider } from "./providers/stripe-payment.provider";
@@ -38,8 +40,6 @@ type ReconcileSuccessInput = {
 
 @Injectable()
 export class PaymentsWebhooksService {
-  private readonly logger = new Logger(PaymentsWebhooksService.name);
-
   constructor(
     private readonly configService: ConfigService,
     private readonly paymentsRepository: PaymentsRepository,
@@ -47,6 +47,8 @@ export class PaymentsWebhooksService {
     private readonly paypalPaymentProvider: PaypalPaymentProvider,
     private readonly payphonePaymentProvider: PayphonePaymentProvider,
     private readonly invoicePdfService: InvoicePdfService,
+    private readonly auditService: AuditService,
+    private readonly logger: AppLoggerService,
   ) {}
 
   async handleStripeWebhook(rawBody: Buffer, headers: Record<string, string | string[] | undefined>) {
@@ -89,6 +91,18 @@ export class PaymentsWebhooksService {
       message: "Webhook Stripe recibido.",
       payload: this.safeJsonValue(event as unknown as Record<string, unknown>),
       headers: this.safeJsonValue(this.normalizeHeaders(headers)),
+    });
+    await this.auditService.record({
+      action: "WEBHOOK_RECEIVED",
+      entityType: AUDIT_ENTITY_TYPES.PAYMENT_WEBHOOK_EVENT,
+      entityId: webhookLog.id,
+      metadata: {
+        provider: PaymentProvider.STRIPE,
+        eventType: event.type,
+        providerEventId: event.id,
+        providerTransactionId,
+        signatureValid: true,
+      },
     });
 
     try {
@@ -149,6 +163,18 @@ export class PaymentsWebhooksService {
       headers: this.safeJsonValue(this.normalizeHeaders(headers)),
       processedAt: signatureValid ? null : new Date(),
     });
+    await this.auditService.record({
+      action: "WEBHOOK_RECEIVED",
+      entityType: AUDIT_ENTITY_TYPES.PAYMENT_WEBHOOK_EVENT,
+      entityId: webhookLog.id,
+      metadata: {
+        provider: PaymentProvider.PAYPAL,
+        eventType,
+        providerEventId,
+        providerTransactionId,
+        signatureValid,
+      },
+    });
 
     if (!signatureValid) {
       this.logger.warn(`PayPal webhook rechazado: firma invalida para evento ${eventType}.`);
@@ -200,6 +226,18 @@ export class PaymentsWebhooksService {
       payload: this.safeJsonValue(payload),
       headers: this.safeJsonValue(this.normalizeHeaders(headers)),
       processedAt: signatureValid ? null : new Date(),
+    });
+    await this.auditService.record({
+      action: "WEBHOOK_RECEIVED",
+      entityType: AUDIT_ENTITY_TYPES.PAYMENT_WEBHOOK_EVENT,
+      entityId: webhookLog.id,
+      metadata: {
+        provider: PaymentProvider.PAYPHONE,
+        eventType,
+        providerEventId,
+        providerTransactionId,
+        signatureValid,
+      },
     });
 
     if (!signatureValid) {
@@ -445,6 +483,27 @@ export class PaymentsWebhooksService {
         externalCustomerId: input.externalCustomerId ?? undefined,
         paidAt: input.paidAt,
       });
+      await this.auditService.record({
+        action: "PAYMENT_CONFIRMED",
+        entityType: AUDIT_ENTITY_TYPES.PAYMENT,
+        entityId: pendingPayment.id,
+        metadata: {
+          provider: input.provider,
+          providerTransactionId: input.providerTransactionId,
+          subscriptionId: subscription.id,
+          amount: input.amount ?? Number(subscription.plan.price),
+          currency: input.currency ?? subscription.plan.currency,
+        },
+      });
+      this.logger.info("Payment confirmed from webhook", {
+        context: PaymentsWebhooksService.name,
+        event: "PAYMENT_CONFIRMED",
+        action: "PAYMENT_CONFIRMED",
+        entityType: AUDIT_ENTITY_TYPES.PAYMENT,
+        entityId: pendingPayment.id,
+        provider: input.provider,
+        subscriptionId: subscription.id,
+      });
 
       return {
         received: true,
@@ -481,7 +540,7 @@ export class PaymentsWebhooksService {
       issuedAt: input.paidAt ?? new Date(),
     });
 
-    await this.paymentsRepository.createRenewalPayment({
+    const renewal = await this.paymentsRepository.createRenewalPayment({
       subscriptionId: subscription.id,
       provider: input.provider,
       amount: input.amount ?? Number(subscription.plan.price),
@@ -493,6 +552,29 @@ export class PaymentsWebhooksService {
       invoiceNumber,
       paidAt: input.paidAt ?? new Date(),
       invoicePdfPath,
+    });
+    await this.auditService.record({
+      action: "PAYMENT_CONFIRMED",
+      entityType: AUDIT_ENTITY_TYPES.PAYMENT,
+      entityId: renewal.payment.id,
+      metadata: {
+        provider: input.provider,
+        providerTransactionId: input.providerTransactionId,
+        subscriptionId: subscription.id,
+        amount: input.amount ?? Number(subscription.plan.price),
+        currency: input.currency ?? subscription.plan.currency,
+        renewal: true,
+      },
+    });
+    this.logger.info("Subscription renewed from webhook", {
+      context: PaymentsWebhooksService.name,
+      event: "PAYMENT_RENEWAL_CONFIRMED",
+      action: "PAYMENT_CONFIRMED",
+      entityType: AUDIT_ENTITY_TYPES.PAYMENT,
+      entityId: renewal.payment.id,
+      provider: input.provider,
+      subscriptionId: subscription.id,
+      providerTransactionId: input.providerTransactionId,
     });
 
     return {

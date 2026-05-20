@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 
 import { ROLE_CODES } from "../common/constants/role-codes";
+import { CurrentUser, type AuthenticatedUser } from "../common/decorators/current-user.decorator";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { CompaniesService } from "./companies.service";
@@ -14,19 +15,31 @@ export class CompaniesController {
     return this.companiesService.create(payload);
   }
 
+  @Roles(ROLE_CODES.COMPANY_ADMIN, ROLE_CODES.RECRUITER, ROLE_CODES.SYSTEM_ADMIN)
   @Get(":companyId/dashboard")
-  getDashboard(@Param("companyId") companyId: string) {
-    return this.companiesService.getDashboard(companyId);
+  getDashboard(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("companyId") companyId: string,
+  ) {
+    return this.companiesService.getDashboard(user, companyId);
   }
 
+  @Roles(ROLE_CODES.COMPANY_ADMIN, ROLE_CODES.RECRUITER, ROLE_CODES.SYSTEM_ADMIN)
   @Get(":companyId/publishing-status")
-  getPublishingStatus(@Param("companyId") companyId: string) {
-    return this.companiesService.getPublishingStatus(companyId);
+  getPublishingStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("companyId") companyId: string,
+  ) {
+    return this.companiesService.getPublishingStatus(user, companyId);
   }
 
+  @Roles(ROLE_CODES.COMPANY_ADMIN, ROLE_CODES.RECRUITER, ROLE_CODES.SYSTEM_ADMIN)
   @Get(":companyId/application-statistics")
-  getApplicationStatistics(@Param("companyId") companyId: string) {
-    return this.companiesService.getApplicationStatistics(companyId);
+  getApplicationStatistics(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("companyId") companyId: string,
+  ) {
+    return this.companiesService.getApplicationStatistics(user, companyId);
   }
 
   @Roles(ROLE_CODES.SYSTEM_ADMIN)

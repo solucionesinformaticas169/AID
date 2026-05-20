@@ -105,6 +105,7 @@ async function main() {
       lastName: "AIDLABORAL",
       primaryRoleId: adminRole.id,
       isActive: true,
+      emailVerifiedAt: new Date(),
     },
     create: {
       email: initialAdminEmail,
@@ -113,6 +114,7 @@ async function main() {
       lastName: "AIDLABORAL",
       primaryRoleId: adminRole.id,
       isActive: true,
+      emailVerifiedAt: new Date(),
     },
   });
 

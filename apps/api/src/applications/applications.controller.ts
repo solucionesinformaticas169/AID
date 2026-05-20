@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 
 import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { Public } from "../common/decorators/public.decorator";
+import { ROLE_CODES } from "../common/constants/role-codes";
+import type { AuthenticatedUser } from "../common/decorators/current-user.decorator";
+import { Roles } from "../common/decorators/roles.decorator";
 import { CreateApplicationDto } from "./dto/create-application.dto";
 import { UpdateApplicationStatusDto } from "./dto/update-application-status.dto";
 import { ApplicationsService } from "./applications.service";
@@ -10,27 +12,37 @@ import { ApplicationsService } from "./applications.service";
 export class ApplicationsController {
   constructor(private readonly applicationsService: ApplicationsService) {}
 
+  @Roles(ROLE_CODES.CANDIDATE)
   @Get("me")
   getMyApplications(@CurrentUser() user: { sub: string }) {
     return this.applicationsService.getMyApplications(user.sub);
   }
 
+  @Roles(ROLE_CODES.CANDIDATE)
   @Post()
-  apply(@Body() payload: CreateApplicationDto) {
-    return this.applicationsService.apply(payload);
+  apply(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() payload: CreateApplicationDto,
+  ) {
+    return this.applicationsService.apply(user, payload);
   }
 
+  @Roles(ROLE_CODES.COMPANY_ADMIN, ROLE_CODES.RECRUITER, ROLE_CODES.SYSTEM_ADMIN)
   @Patch(":applicationId/status")
   updateStatus(
+    @CurrentUser() user: AuthenticatedUser,
     @Param("applicationId") applicationId: string,
     @Body() payload: UpdateApplicationStatusDto,
   ) {
-    return this.applicationsService.updateStatus(applicationId, payload);
+    return this.applicationsService.updateStatus(user, applicationId, payload);
   }
 
-  @Public()
+  @Roles(ROLE_CODES.COMPANY_ADMIN, ROLE_CODES.RECRUITER, ROLE_CODES.SYSTEM_ADMIN)
   @Get("company/:companyId/statistics")
-  getCompanyStatistics(@Param("companyId") companyId: string) {
-    return this.applicationsService.getCompanyStatistics(companyId);
+  getCompanyStatistics(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("companyId") companyId: string,
+  ) {
+    return this.applicationsService.getCompanyStatistics(user, companyId);
   }
 }

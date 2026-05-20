@@ -7,6 +7,7 @@ import {
 import { PaymentProvider, PlanCode, Prisma } from "@prisma/client";
 import { readFile } from "node:fs/promises";
 
+import { AUDIT_ENTITY_TYPES } from "../audit/audit.constants";
 import { PlansService } from "../plans/plans.service";
 import { CreateCheckoutDto } from "./dto/create-checkout.dto";
 import { ConfirmPaymentDto } from "./dto/confirm-payment.dto";
@@ -17,6 +18,7 @@ import { PaymentsRepository } from "./repositories/payments.repository";
 import type { PaymentCheckoutResult } from "./types/payment.types";
 import type { AuthenticatedUser } from "../common/decorators/current-user.decorator";
 import { ROLE_CODES } from "../common/constants/role-codes";
+import { AppLoggerService } from "../observability/app-logger.service";
 
 @Injectable()
 export class PaymentsService {
@@ -26,6 +28,7 @@ export class PaymentsService {
     private readonly stripePaymentProvider: StripePaymentProvider,
     private readonly paypalPaymentProvider: PaypalPaymentProvider,
     private readonly payphonePaymentProvider: PayphonePaymentProvider,
+    private readonly logger: AppLoggerService,
   ) {}
 
   async getCompanyPayments(user: AuthenticatedUser, companyId: string) {
@@ -101,6 +104,18 @@ export class PaymentsService {
         featuredCandidates: plan.featuredCandidates,
       },
       invoiceNumber,
+    });
+    this.logger.info("Payment checkout created", {
+      context: PaymentsService.name,
+      event: "PAYMENT_CHECKOUT_CREATED",
+      userId: user.sub,
+      companyId: company.id,
+      entityType: AUDIT_ENTITY_TYPES.PAYMENT,
+      entityId: checkoutRecords.paymentId,
+      provider: payload.provider,
+      planCode: payload.planCode,
+      subscriptionId: checkoutRecords.subscriptionId,
+      invoiceId: checkoutRecords.invoiceId,
     });
 
     return {

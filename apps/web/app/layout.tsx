@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   description: "Base inicial de plataforma web de empleos y talento humano.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="es">
       <body className={`${inter.variable} ${plex.variable} min-h-screen`}>

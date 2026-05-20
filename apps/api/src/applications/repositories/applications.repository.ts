@@ -11,7 +11,15 @@ export class ApplicationsRepository {
     return this.prisma.jobApplication.findMany({
       where: { userId },
       include: {
-        jobOffer: true,
+        jobOffer: {
+          include: {
+            company: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
         timelineEntries: {
           orderBy: {
             createdAt: "asc",
@@ -28,7 +36,18 @@ export class ApplicationsRepository {
     return this.prisma.jobOffer.findUnique({
       where: { id: jobOfferId },
       include: {
-        company: true,
+        company: {
+          include: {
+            companyUsers: {
+              where: {
+                isActive: true,
+              },
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -41,6 +60,20 @@ export class ApplicationsRepository {
         workExperiences: true,
         certifications: true,
         languages: true,
+        user: true,
+      },
+    });
+  }
+
+  findCandidateProfileByUserId(userId: string) {
+    return this.prisma.candidateProfile.findUnique({
+      where: { userId },
+      include: {
+        educationRecords: true,
+        workExperiences: true,
+        certifications: true,
+        languages: true,
+        user: true,
       },
     });
   }
@@ -150,6 +183,19 @@ export class ApplicationsRepository {
         appliedAt: "desc",
       },
       take: 10,
+    });
+  }
+
+  userHasCompanyAccess(userId: string, companyId: string) {
+    return this.prisma.companyUser.findFirst({
+      where: {
+        userId,
+        companyId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
     });
   }
 

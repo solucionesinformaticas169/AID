@@ -34,7 +34,14 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
-    return NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-aid-route-scope", "private");
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   } catch {
     return NextResponse.redirect(new URL("/login", request.url));
   }

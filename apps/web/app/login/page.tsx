@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -45,8 +44,7 @@ export default function LoginPage() {
         SYSTEM_ADMIN: "/admin",
       };
 
-      router.push(destinationMap[payload.user.role] ?? "/");
-      router.refresh();
+      window.location.assign(destinationMap[payload.user.role] ?? "/");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "No se pudo iniciar sesion.");
     } finally {
@@ -56,7 +54,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex max-w-xl px-6 py-14">
-      <Card className="w-full border-border/70 bg-white/90">
+      <Card className="w-full border-border/70 bg-card/90 text-card-foreground">
         <CardHeader>
           <CardTitle>Ingreso a la plataforma</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -83,6 +81,14 @@ export default function LoginPage() {
             <Button className="w-full" type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Iniciando..." : "Iniciar sesion"}
             </Button>
+            <div className="flex justify-between text-sm">
+              <Link className="text-primary underline-offset-4 hover:underline" href="/recuperar-clave">
+                Olvide mi contrasena
+              </Link>
+              <Link className="text-primary underline-offset-4 hover:underline" href="/registro">
+                Crear cuenta
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

@@ -1,6 +1,12 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 
 import { ApplicationsService } from "../applications/applications.service";
+import { ROLE_CODES } from "../common/constants/role-codes";
+import type { AuthenticatedUser } from "../common/decorators/current-user.decorator";
 import { PlansService } from "../plans/plans.service";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { CompaniesRepository } from "./repositories/companies.repository";
@@ -17,7 +23,8 @@ export class CompaniesService {
     return this.companiesRepository.create(payload);
   }
 
-  async getDashboard(companyId: string) {
+  async getDashboard(user: AuthenticatedUser, companyId: string) {
+    await this.assertCompanyAccess(user, companyId);
     const company = await this.companiesRepository.findById(companyId);
 
     if (!company) {
@@ -25,7 +32,7 @@ export class CompaniesService {
     }
 
     const planStatus = await this.plansService.getCompanyPlanStatus(companyId);
-    const applicationStats = await this.applicationsService.getCompanyStatistics(companyId);
+    const applicationStats = await this.applicationsService.getCompanyStatistics(user, companyId);
 
     return {
       company,
@@ -34,7 +41,8 @@ export class CompaniesService {
     };
   }
 
-  getPublishingStatus(companyId: string) {
+  async getPublishingStatus(user: AuthenticatedUser, companyId: string) {
+    await this.assertCompanyAccess(user, companyId);
     return this.plansService.getCompanyPlanStatus(companyId);
   }
 
@@ -46,7 +54,20 @@ export class CompaniesService {
     return this.companiesRepository.updateStatus(companyId, "APPROVED");
   }
 
-  getApplicationStatistics(companyId: string) {
-    return this.applicationsService.getCompanyStatistics(companyId);
+  async getApplicationStatistics(user: AuthenticatedUser, companyId: string) {
+    await this.assertCompanyAccess(user, companyId);
+    return this.applicationsService.getCompanyStatistics(user, companyId);
+  }
+
+  private async assertCompanyAccess(user: AuthenticatedUser, companyId: string) {
+    if (user.role === ROLE_CODES.SYSTEM_ADMIN) {
+      return;
+    }
+
+    const hasMembership = await this.companiesRepository.userHasCompanyAccess(user.sub, companyId);
+
+    if (!hasMembership || user.companyId !== companyId) {
+      throw new ForbiddenException("No tienes acceso a recursos de otra empresa.");
+    }
   }
 }

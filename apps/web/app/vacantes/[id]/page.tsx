@@ -38,7 +38,7 @@ export default async function VacancyDetailPage({
           <div className="flex flex-wrap gap-3">
             <Button>Postular a vacante</Button>
             <Button asChild variant="outline">
-              <Link href="/">Volver al listado</Link>
+              <Link href="/candidato/oportunidades">Volver al listado</Link>
             </Button>
           </div>
         </CardContent>

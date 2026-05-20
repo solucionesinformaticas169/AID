@@ -43,4 +43,17 @@ export class CompaniesRepository {
       data: { status },
     });
   }
+
+  userHasCompanyAccess(userId: string, companyId: string) {
+    return this.prisma.companyUser.findFirst({
+      where: {
+        userId,
+        companyId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
 }

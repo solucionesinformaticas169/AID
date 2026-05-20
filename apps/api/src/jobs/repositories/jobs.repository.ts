@@ -30,9 +30,39 @@ export class JobsRepository {
     });
   }
 
+  findById(jobId: string) {
+    return this.prisma.jobOffer.findUnique({
+      where: { id: jobId },
+      include: {
+        company: {
+          include: {
+            companyUsers: {
+              where: {
+                isActive: true,
+              },
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   findCompanyById(companyId: string) {
     return this.prisma.company.findUnique({
       where: { id: companyId },
+      include: {
+        companyUsers: {
+          where: {
+            isActive: true,
+          },
+          include: {
+            user: true,
+          },
+        },
+      },
     });
   }
 
@@ -43,6 +73,22 @@ export class JobsRepository {
     });
   }
 
+  findPendingModerationJobs() {
+    return this.prisma.jobOffer.findMany({
+      where: {
+        status: {
+          in: [JobOfferStatus.DRAFT, JobOfferStatus.PAUSED],
+        },
+      },
+      include: {
+        company: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+  }
+
   incrementFreePostsUsed(companyId: string) {
     return this.prisma.company.update({
       where: { id: companyId },
@@ -50,6 +96,19 @@ export class JobsRepository {
         freeJobPostsUsed: {
           increment: 1,
         },
+      },
+    });
+  }
+
+  userHasCompanyAccess(userId: string, companyId: string) {
+    return this.prisma.companyUser.findFirst({
+      where: {
+        userId,
+        companyId,
+        isActive: true,
+      },
+      select: {
+        id: true,
       },
     });
   }
@@ -71,6 +130,8 @@ export class JobsRepository {
     requiredCertifications?: string[];
     freePublication: boolean;
     priorityPublication: boolean;
+    status: JobOfferStatus;
+    publishedAt?: Date | null;
   }) {
     return this.prisma.jobOffer.create({
       data: {
@@ -78,8 +139,30 @@ export class JobsRepository {
         requiredLanguages: data.requiredLanguages ?? [],
         requiredCertifications: data.requiredCertifications ?? [],
         minimumYearsExperience: data.minimumYearsExperience ?? 0,
-        status: JobOfferStatus.PUBLISHED,
-        publishedAt: new Date(),
+      },
+    });
+  }
+
+  updateModerationStatus(jobId: string, status: JobOfferStatus) {
+    return this.prisma.jobOffer.update({
+      where: { id: jobId },
+      data: {
+        status,
+        publishedAt: status === JobOfferStatus.PUBLISHED ? new Date() : null,
+      },
+      include: {
+        company: {
+          include: {
+            companyUsers: {
+              where: {
+                isActive: true,
+              },
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
       },
     });
   }

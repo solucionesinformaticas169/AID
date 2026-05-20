@@ -166,12 +166,12 @@ export const invoiceHistory = [
 ];
 
 export const siteMenu = [
-  { href: "#quienes-somos", label: "Quienes somos" },
-  { href: "#objetivos", label: "Objetivos" },
-  { href: "#ciudadania", label: "Servicios a la ciudadania" },
-  { href: "#empleadores", label: "Servicios para empleadores" },
-  { href: "#ventajas", label: "Ventajas de trabajar con AIDLABORAL S.A.S" },
-  { href: "#contacto", label: "Contactanos" },
+  { href: "/#quienes-somos", label: "Quienes somos" },
+  { href: "/#objetivos", label: "Objetivos" },
+  { href: "/#ciudadania", label: "Servicios a la ciudadania" },
+  { href: "/#empleadores", label: "Servicios para empleadores" },
+  { href: "/#ventajas", label: "Ventajas de trabajar con AIDLABORAL S.A.S" },
+  { href: "/#contacto", label: "Contactanos" },
 ];
 
 export const serviceBlocks = {

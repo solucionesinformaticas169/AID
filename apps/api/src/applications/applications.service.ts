@@ -1,39 +1,61 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { JobApplicationStatus, Prisma } from "@prisma/client";
 
+import { AuditService } from "../audit/audit.service";
+import { AUDIT_ENTITY_TYPES } from "../audit/audit.constants";
+import { ROLE_CODES } from "../common/constants/role-codes";
+import type { AuthenticatedUser } from "../common/decorators/current-user.decorator";
+import { EmailsService } from "../emails/emails.service";
+import { AppLoggerService } from "../observability/app-logger.service";
 import { CreateApplicationDto } from "./dto/create-application.dto";
 import { UpdateApplicationStatusDto } from "./dto/update-application-status.dto";
 import { ApplicationsRepository } from "./repositories/applications.repository";
 
 @Injectable()
 export class ApplicationsService {
-  constructor(private readonly applicationsRepository: ApplicationsRepository) {}
+  constructor(
+    private readonly applicationsRepository: ApplicationsRepository,
+    private readonly emailsService: EmailsService,
+    private readonly auditService: AuditService,
+    private readonly logger: AppLoggerService,
+  ) {}
 
   getMyApplications(userId: string) {
     return this.applicationsRepository.findByUserId(userId);
   }
 
-  async apply(payload: CreateApplicationDto) {
-    const [jobOffer, candidateProfile] = await Promise.all([
+  async apply(user: AuthenticatedUser, payload: CreateApplicationDto) {
+    const candidateProfile = await this.applicationsRepository.findCandidateProfileByUserId(user.sub);
+
+    if (!candidateProfile) {
+      throw new NotFoundException("No se encontro un perfil de candidato para este usuario.");
+    }
+
+    const [jobOffer, hydratedCandidateProfile] = await Promise.all([
       this.applicationsRepository.findJobOfferForApplication(payload.jobOfferId),
-      this.applicationsRepository.findCandidateProfileForApplication(payload.candidateProfileId),
+      this.applicationsRepository.findCandidateProfileForApplication(candidateProfile.id),
     ]);
 
     if (!jobOffer) {
       throw new NotFoundException(`Vacante ${payload.jobOfferId} no encontrada.`);
     }
 
-    if (!candidateProfile) {
-      throw new NotFoundException(`Perfil candidato ${payload.candidateProfileId} no encontrado.`);
+    if (!hydratedCandidateProfile) {
+      throw new NotFoundException(`Perfil candidato ${candidateProfile.id} no encontrado.`);
     }
 
-    const selectedEducation = candidateProfile.educationRecords.filter((education) =>
+    const selectedEducation = hydratedCandidateProfile.educationRecords.filter((education) =>
       payload.selectedEducationIds.includes(education.id),
     );
-    const selectedWorkExperiences = candidateProfile.workExperiences.filter((experience) =>
+    const selectedWorkExperiences = hydratedCandidateProfile.workExperiences.filter((experience) =>
       payload.selectedWorkExperienceIds.includes(experience.id),
     );
-    const selectedCertifications = candidateProfile.certifications.filter((certification) =>
+    const selectedCertifications = hydratedCandidateProfile.certifications.filter((certification) =>
       payload.selectedCertificationIds.includes(certification.id),
     );
 
@@ -55,7 +77,9 @@ export class ApplicationsService {
     const experienceRequirementMet = calculatedYearsExperience >= (jobOffer.minimumYearsExperience ?? 0);
 
     const requiredLanguages = this.toStringArray(jobOffer.requiredLanguages);
-    const candidateLanguages = candidateProfile.languages.map((language) => language.name.toLowerCase());
+    const candidateLanguages = hydratedCandidateProfile.languages.map((language) =>
+      language.name.toLowerCase(),
+    );
     const matchedLanguages = requiredLanguages.filter((language) =>
       candidateLanguages.includes(language.toLowerCase()),
     );
@@ -88,10 +112,10 @@ export class ApplicationsService {
       languagesRequirementMet &&
       certificationsRequirementMet;
 
-    return this.applicationsRepository.create({
+    const application = await this.applicationsRepository.create({
       jobOfferId: payload.jobOfferId,
-      candidateProfileId: payload.candidateProfileId,
-      userId: payload.userId,
+      candidateProfileId: candidateProfile.id,
+      userId: user.sub,
       coverLetter: payload.coverLetter,
       selectedEducationIds: payload.selectedEducationIds,
       selectedWorkExperienceIds: payload.selectedWorkExperienceIds,
@@ -124,19 +148,89 @@ export class ApplicationsService {
         },
       },
     });
+    await this.auditService.record({
+      action: "APPLICATION_CREATED",
+      userId: user.sub,
+      entityType: AUDIT_ENTITY_TYPES.JOB_APPLICATION,
+      entityId: application.id,
+      metadata: {
+        jobOfferId: payload.jobOfferId,
+        candidateProfileId: candidateProfile.id,
+        compatibilityScore,
+        meetsRequirements,
+      },
+    });
+    this.logger.info("Application created successfully", {
+      context: ApplicationsService.name,
+      event: "APPLICATION_CREATED",
+      action: "APPLICATION_CREATED",
+      userId: user.sub,
+      entityType: AUDIT_ENTITY_TYPES.JOB_APPLICATION,
+      entityId: application.id,
+      compatibilityScore,
+      meetsRequirements,
+    });
+
+    void Promise.allSettled([
+      this.emailsService.sendApplicationSubmittedEmail({
+        userId: candidateProfile.user.id,
+        recipientEmail: hydratedCandidateProfile.user.email,
+        candidateName: `${hydratedCandidateProfile.user.firstName} ${hydratedCandidateProfile.user.lastName}`.trim(),
+        jobTitle: jobOffer.title,
+        companyName: jobOffer.company.name,
+        dashboardUrl: this.emailsService.buildCandidateDashboardUrl(),
+        applicationId: application.id,
+      }),
+      ...jobOffer.company.companyUsers.map((companyUser) =>
+        this.emailsService.sendNewApplicationEmail({
+          userId: companyUser.user.id,
+          recipientEmail: companyUser.user.email,
+          recruiterName: `${companyUser.user.firstName} ${companyUser.user.lastName}`.trim(),
+          candidateName: `${hydratedCandidateProfile.user.firstName} ${hydratedCandidateProfile.user.lastName}`.trim(),
+          jobTitle: jobOffer.title,
+          dashboardUrl: this.emailsService.buildCompanyDashboardUrl(),
+          applicationId: application.id,
+        }),
+      ),
+    ]);
+
+    return application;
   }
 
-  async updateStatus(applicationId: string, payload: UpdateApplicationStatusDto) {
+  async updateStatus(
+    user: AuthenticatedUser,
+    applicationId: string,
+    payload: UpdateApplicationStatusDto,
+  ) {
     const existingApplication = await this.applicationsRepository.findApplicationById(applicationId);
 
     if (!existingApplication) {
       throw new NotFoundException(`Postulacion ${applicationId} no encontrada.`);
     }
 
+    if (user.role !== ROLE_CODES.SYSTEM_ADMIN) {
+      const hasMembership = await this.applicationsRepository.userHasCompanyAccess(
+        user.sub,
+        existingApplication.jobOffer.companyId,
+      );
+
+      if (!hasMembership || user.companyId !== existingApplication.jobOffer.companyId) {
+        throw new ForbiddenException("No tienes acceso a postulaciones de otra empresa.");
+      }
+    }
+
     return this.applicationsRepository.updateStatus(applicationId, payload.status, payload.note);
   }
 
-  async getCompanyStatistics(companyId: string) {
+  async getCompanyStatistics(user: AuthenticatedUser, companyId: string) {
+    if (user.role !== ROLE_CODES.SYSTEM_ADMIN) {
+      const hasMembership = await this.applicationsRepository.userHasCompanyAccess(user.sub, companyId);
+
+      if (!hasMembership || user.companyId !== companyId) {
+        throw new ForbiddenException("No tienes acceso a estadisticas de otra empresa.");
+      }
+    }
+
     const [groupedStats, recentApplications] = await Promise.all([
       this.applicationsRepository.getCompanyApplicationStats(companyId),
       this.applicationsRepository.getCompanyRecentApplications(companyId),

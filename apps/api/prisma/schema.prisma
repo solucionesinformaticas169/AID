@@ -104,6 +104,39 @@ enum CompanyStatus {
   REJECTED
 }
 
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum EmailTemplateKind {
+  VERIFY_EMAIL
+  PASSWORD_RESET
+  APPLICATION_SUBMITTED
+  NEW_APPLICATION
+  JOB_PUBLISHED
+}
+
+enum EmailDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  RATE_LIMITED
+  SKIPPED
+}
+
+enum AuditAction {
+  AUTH_LOGIN
+  AUTH_LOGIN_FAILED
+  USER_REGISTERED
+  JOB_CREATED
+  APPLICATION_CREATED
+  PAYMENT_CONFIRMED
+  WEBHOOK_RECEIVED
+  DOCUMENT_UPLOADED
+  DOCUMENT_DELETED
+}
+
 model Role {
   id           String        @id @default(uuid())
   code         String        @unique
@@ -120,6 +153,7 @@ model User {
   id                 String              @id @default(uuid())
   email              String              @unique
   passwordHash       String
+  emailVerifiedAt    DateTime?
   firstName          String
   lastName           String
   phone              String?
@@ -132,8 +166,107 @@ model User {
   applications       JobApplication[]
   createdJobOffers   JobOffer[]          @relation("JobOfferCreatedBy")
   candidateDocuments CandidateDocument[]
+  authTokens         AuthToken[]
+  emailDeliveryLogs  EmailDeliveryLog[]
+  auditLogs          AuditLog[]
+  sessions           UserSession[]
+  loginThrottles     LoginThrottle[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+}
+
+model AuthToken {
+  id         String        @id @default(uuid())
+  userId      String
+  type       AuthTokenType
+  tokenHash  String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  metadata   Json?
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([type, tokenHash])
+  @@index([userId, type, usedAt])
+  @@index([expiresAt])
+}
+
+model EmailDeliveryLog {
+  id             String              @id @default(uuid())
+  userId          String?
+  templateKind   EmailTemplateKind
+  recipientEmail String
+  subject        String
+  provider       String              @default("resend")
+  providerEmailId String?
+  idempotencyKey String?
+  status         EmailDeliveryStatus @default(PENDING)
+  errorMessage   String?
+  metadata       Json?
+  sentAt         DateTime?
+  user           User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([recipientEmail, templateKind, createdAt])
+  @@index([userId, templateKind, createdAt])
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String?
+  action     AuditAction
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  requestId  String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt  DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([requestId])
+}
+
+model UserSession {
+  id                       String    @id @default(uuid())
+  userId                   String
+  refreshTokenHash         String
+  previousRefreshTokenHash String?
+  ip                       String?
+  userAgent                String?
+  lastUsedAt               DateTime?
+  expiresAt                DateTime
+  revokedAt                DateTime?
+  revokeReason             String?
+  reuseDetectedAt          DateTime?
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model LoginThrottle {
+  id            String    @id @default(uuid())
+  userId        String?
+  email         String
+  ip            String
+  failedCount   Int       @default(0)
+  lockedUntil   DateTime?
+  lastAttemptAt DateTime  @default(now())
+  userAgent     String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([email, ip])
+  @@index([lockedUntil])
 }
 
 model CandidateProfile {

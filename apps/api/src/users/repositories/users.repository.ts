@@ -6,10 +6,36 @@ import { PrismaService } from "../../prisma/prisma.service";
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(roleCode?: string) {
     return this.prisma.user.findMany({
+      where: roleCode
+        ? {
+            primaryRole: {
+              code: roleCode,
+            },
+          }
+        : undefined,
       include: {
         primaryRole: true,
+        companyUsers: {
+          where: {
+            isActive: true,
+          },
+          include: {
+            company: true,
+          },
+        },
+        sessions: {
+          where: {
+            revokedAt: null,
+            expiresAt: {
+              gt: new Date(),
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -22,16 +48,54 @@ export class UsersRepository {
       where: { id },
       include: {
         primaryRole: true,
+        companyUsers: {
+          where: {
+            isActive: true,
+          },
+          include: {
+            company: true,
+          },
+        },
+        sessions: {
+          where: {
+            revokedAt: null,
+            expiresAt: {
+              gt: new Date(),
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
       },
     });
   }
 
-  updateById(id: string, data: { firstName?: string; lastName?: string; phone?: string }) {
+  updateById(id: string, data: { firstName?: string; lastName?: string; phone?: string; isActive?: boolean }) {
     return this.prisma.user.update({
       where: { id },
       data,
       include: {
         primaryRole: true,
+        companyUsers: {
+          where: {
+            isActive: true,
+          },
+          include: {
+            company: true,
+          },
+        },
+        sessions: {
+          where: {
+            revokedAt: null,
+            expiresAt: {
+              gt: new Date(),
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
       },
     });
   }

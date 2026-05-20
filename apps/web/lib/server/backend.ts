@@ -1,5 +1,5 @@
 type BackendRequestOptions = {
-  method?: "GET" | "POST" | "PATCH";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   accessToken?: string | null;
   body?: unknown;
   headers?: HeadersInit;

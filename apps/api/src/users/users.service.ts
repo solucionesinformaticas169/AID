@@ -7,8 +7,8 @@ import { UsersRepository } from "./repositories/users.repository";
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  getAll() {
-    return this.usersRepository.findAll();
+  getAll(roleCode?: string) {
+    return this.usersRepository.findAll(roleCode);
   }
 
   async getById(id: string) {
@@ -23,5 +23,10 @@ export class UsersService {
 
   updateById(id: string, payload: UpdateUserDto) {
     return this.usersRepository.updateById(id, payload);
+  }
+
+  async setActiveStatus(id: string, isActive: boolean) {
+    await this.getById(id);
+    return this.usersRepository.updateById(id, { isActive });
   }
 }

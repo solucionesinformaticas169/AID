@@ -1,17 +1,12 @@
- "use client";
+"use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-const roles = ["Candidato", "EmpresaAdmin", "Reclutador", "AdministradorSistema"];
-
 export default function RegisterPage() {
-  const router = useRouter();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -44,8 +39,7 @@ export default function RegisterPage() {
         throw new Error(payload.message ?? "No se pudo crear la cuenta.");
       }
 
-      router.push("/candidato");
-      router.refresh();
+      window.location.assign("/candidato");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "No se pudo crear la cuenta.");
     } finally {
@@ -62,8 +56,8 @@ export default function RegisterPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <Card className="border-border/70 bg-white/90">
+      <div className="grid gap-6">
+        <Card className="border-border/70 bg-card/90 text-card-foreground">
           <CardHeader>
             <CardTitle>Crear cuenta</CardTitle>
           </CardHeader>
@@ -110,19 +104,6 @@ export default function RegisterPage() {
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/70 bg-gradient-to-br from-white to-accent/30">
-          <CardHeader>
-            <CardTitle>Roles iniciales</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {roles.map((role) => (
-              <Badge key={role} variant="outline">
-                {role}
-              </Badge>
-            ))}
           </CardContent>
         </Card>
       </div>
