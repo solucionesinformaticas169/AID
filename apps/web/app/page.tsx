@@ -266,11 +266,11 @@ export default function HomePage() {
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
               <p className="font-medium">Correo</p>
-              <p className="text-muted-foreground">contacto@aidlaboral.com</p>
+              <p className="text-muted-foreground">ivangarate@icloud.com</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
               <p className="font-medium">Telefono</p>
-              <p className="text-muted-foreground">+593 99 000 0000</p>
+              <p className="text-muted-foreground">0962948533</p>
             </div>
             <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
               <p className="font-medium">Atencion</p>
