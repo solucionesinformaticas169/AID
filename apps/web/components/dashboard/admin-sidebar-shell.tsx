@@ -19,6 +19,7 @@ import {
 
 import { PrivateSessionGuard } from "@/components/auth/private-session-guard";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { SessionUser } from "@/lib/auth/session";
@@ -91,9 +92,10 @@ export function AdminSidebarShell({
     <main className="mx-auto grid max-w-7xl gap-6 px-4 py-8 lg:grid-cols-[280px_1fr] lg:px-6">
       <PrivateSessionGuard user={user} />
       <aside className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-1">
-        <Card className="overflow-hidden rounded-[1.75rem] border-border/70 bg-card/90">
+        <Card className="overflow-hidden rounded-[1.75rem] border-border/70 bg-card/90 shadow-[0_18px_44px_rgba(33,29,8,0.06)]">
           <CardContent className="space-y-4 p-5">
             <div className="space-y-2">
+              <BrandLogo compact />
               <Badge variant="secondary">AdministradorSistema</Badge>
               <div>
                 <h1 className="text-xl font-semibold leading-tight">{title}</h1>
@@ -116,25 +118,25 @@ export function AdminSidebarShell({
               </div>
 
               <nav className="grid gap-2">
-              {sidebarItems.map((item) => {
-                const Icon = item.icon;
-                const isActive =
-                  item.href === "/admin" ? pathname === "/admin" : pathname === "/admin";
+                {sidebarItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    item.href === "/admin" ? pathname === "/admin" : pathname === "/admin";
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={(event) => handleNavigation(event, item.href)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
-                      isActive
-                        ? "border-primary/20 bg-primary/10 text-primary"
-                        : "border-border/60 bg-background/40 text-foreground hover:bg-background/70",
-                    )}
-                  >
-                    <Icon className="size-4" />
-                    <span>{item.label}</span>
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={(event) => handleNavigation(event, item.href)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                        isActive
+                          ? "border-primary/20 bg-primary/10 text-primary"
+                          : "border-border/60 bg-background/40 text-foreground hover:bg-background/70",
+                      )}
+                    >
+                      <Icon className="size-4" />
+                      <span>{item.label}</span>
                     </Link>
                   );
                 })}

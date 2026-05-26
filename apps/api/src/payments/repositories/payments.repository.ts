@@ -210,6 +210,7 @@ export class PaymentsRepository {
     durationMonths: number;
     planSnapshot: Prisma.InputJsonValue;
     invoiceNumber: string;
+    billingSnapshot?: Prisma.InputJsonValue;
   }) {
     const now = new Date();
     const endsAt =
@@ -245,7 +246,10 @@ export class PaymentsRepository {
           externalReference: input.externalReference,
           providerPaymentId: input.providerPaymentId,
           checkoutUrl: input.checkoutUrl,
-          providerPayload: input.providerPayload,
+          providerPayload: {
+            provider: input.providerPayload ?? null,
+            billing: input.billingSnapshot ?? null,
+          },
         },
       });
 
@@ -259,7 +263,10 @@ export class PaymentsRepository {
           subtotal: input.amount,
           total: input.amount,
           currency: input.currency,
-          providerPayload: input.providerPayload,
+          providerPayload: {
+            provider: input.providerPayload ?? null,
+            billing: input.billingSnapshot ?? null,
+          },
         },
       });
 

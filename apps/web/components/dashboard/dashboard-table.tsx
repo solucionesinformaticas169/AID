@@ -15,7 +15,7 @@ type DashboardTableProps<T> = {
 
 export function DashboardTable<T>({ columns, rows }: DashboardTableProps<T>) {
   return (
-    <Table>
+    <Table className="min-w-[640px]">
       <TableHeader>
         <TableRow>
           {columns.map((column) => (

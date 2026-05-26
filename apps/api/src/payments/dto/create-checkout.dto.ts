@@ -32,4 +32,36 @@ export class CreateCheckoutDto {
   @IsOptional()
   @IsString()
   payerCountryCode?: string;
+
+  @IsOptional()
+  @IsString()
+  billingFirstName?: string;
+
+  @IsOptional()
+  @IsString()
+  billingLastName?: string;
+
+  @IsOptional()
+  @IsString()
+  billingCompanyName?: string;
+
+  @IsOptional()
+  @IsString()
+  billingContactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  billingTaxId?: string;
+
+  @IsOptional()
+  @IsString()
+  billingAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  billingCity?: string;
+
+  @IsOptional()
+  @IsString()
+  billingCountry?: string;
 }

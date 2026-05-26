@@ -273,6 +273,18 @@ export class PaymentsWebhooksService {
     }
   }
 
+  async reconcilePayphoneButtonConfirmation(
+    payload: Record<string, unknown>,
+  ): Promise<WebhookResponse> {
+    const transactionId = this.resolvePayphoneTransactionId(payload);
+
+    if (!transactionId) {
+      throw new BadRequestException("PayPhone confirm recibido sin transactionId.");
+    }
+
+    return this.processPayphoneEvent(payload, payload, transactionId);
+  }
+
   private async processStripeEvent(event: Stripe.Event): Promise<WebhookResponse> {
     switch (event.type) {
       case "checkout.session.completed": {

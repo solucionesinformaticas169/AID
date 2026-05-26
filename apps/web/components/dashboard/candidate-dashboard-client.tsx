@@ -73,7 +73,7 @@ export function CandidateDashboardClient() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
-  const { showToast, openModal } = useFeedback();
+  const { closeModal, showToast, openModal } = useFeedback();
 
   const filteredApplications = useMemo(
     () => applications,
@@ -187,6 +187,17 @@ export function CandidateDashboardClient() {
       return;
     }
 
+    if (
+      selectedDocumentType === "CV" &&
+      documents.some((document) => document.type === "CV")
+    ) {
+      showToast({
+        title: "CV ya cargado",
+        description: "Solo puedes tener una hoja de vida en PDF. Elimina la actual antes de subir otra.",
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -240,6 +251,7 @@ export function CandidateDashboardClient() {
     try {
       const response = await deleteDocument(documentId);
       setDocuments((current) => current.filter((document) => document.id !== documentId));
+      closeModal();
       showToast({
         title: "Documento eliminado",
         description: response.message,
@@ -328,7 +340,7 @@ export function CandidateDashboardClient() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  CV: solo PDF. Certificados y documentos personales: PDF, PNG o JPG.
+                  CV: un solo archivo PDF de hasta 2 MB. Certificados y documentos personales: PDF, PNG o JPG.
                 </p>
               </div>
 
@@ -412,6 +424,12 @@ export function CandidateDashboardClient() {
                             description: `Se eliminara ${document.fileName} del storage privado.`,
                             content: (
                               <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => closeModal()}
+                                >
+                                  Cancelar
+                                </Button>
                                 <Button
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   onClick={() => void handleDelete(document.id)}
@@ -511,7 +529,7 @@ export function CandidateDashboardClient() {
                                 <div className="flex flex-wrap gap-2">
                                   {row.timelineEntries.map((step) => (
                                     <Badge key={step.id} variant="secondary">
-                                      {step.title}
+                                      {formatApplicationStatus(step.status)}
                                     </Badge>
                                   ))}
                                 </div>
@@ -558,7 +576,7 @@ export function CandidateDashboardClient() {
                           {index + 1}
                         </div>
                         <div>
-                          <p className="text-sm font-medium">{step.title}</p>
+                          <p className="text-sm font-medium">{formatApplicationStatus(step.status)}</p>
                           <p className="text-sm text-muted-foreground">
                             {step.description ?? "Seguimiento ATS del proceso de seleccion."}
                           </p>
@@ -578,7 +596,7 @@ export function CandidateDashboardClient() {
 
 function formatApplicationStatus(status: string) {
   const labels: Record<string, string> = {
-    APPLIED: "Aplicada",
+    APPLIED: "Enviado",
     REVIEWING: "En revision",
     SHORTLISTED: "Preseleccionado",
     INTERVIEW: "Entrevista",

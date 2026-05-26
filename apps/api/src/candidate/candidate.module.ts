@@ -9,5 +9,6 @@ import { CandidateRepository } from "./repositories/candidate.repository";
   imports: [PrismaModule],
   controllers: [CandidateController],
   providers: [CandidateService, CandidateRepository],
+  exports: [CandidateService],
 })
 export class CandidateModule {}

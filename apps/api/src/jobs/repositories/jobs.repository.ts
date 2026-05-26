@@ -8,9 +8,13 @@ export class JobsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   findPublicJobs() {
+    const now = new Date();
+
     return this.prisma.jobOffer.findMany({
       where: {
         status: JobOfferStatus.PUBLISHED,
+        OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
+        AND: [{ OR: [{ closesAt: null }, { closesAt: { gte: now } }] }],
       },
       include: {
         company: true,
@@ -89,6 +93,24 @@ export class JobsRepository {
     });
   }
 
+  findByCompanyId(companyId: string) {
+    return this.prisma.jobOffer.findMany({
+      where: {
+        companyId,
+      },
+      include: {
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
   incrementFreePostsUsed(companyId: string) {
     return this.prisma.company.update({
       where: { id: companyId },
@@ -128,10 +150,13 @@ export class JobsRepository {
     minimumYearsExperience?: number;
     requiredLanguages?: string[];
     requiredCertifications?: string[];
+    salaryMin?: number | null;
+    salaryMax?: number | null;
     freePublication: boolean;
     priorityPublication: boolean;
     status: JobOfferStatus;
     publishedAt?: Date | null;
+    closesAt?: Date | null;
   }) {
     return this.prisma.jobOffer.create({
       data: {
@@ -139,6 +164,43 @@ export class JobsRepository {
         requiredLanguages: data.requiredLanguages ?? [],
         requiredCertifications: data.requiredCertifications ?? [],
         minimumYearsExperience: data.minimumYearsExperience ?? 0,
+      },
+    });
+  }
+
+  updateJob(
+    jobId: string,
+    data: {
+      title?: string;
+      description?: string;
+      requirements?: string;
+      responsibilities?: string;
+      benefits?: string;
+      city?: string;
+      country?: string;
+      requiredEducationLevel?: string;
+      minimumYearsExperience?: number;
+      requiredLanguages?: string[];
+      requiredCertifications?: string[];
+      salaryMin?: number | null;
+      salaryMax?: number | null;
+      publishedAt?: Date | null;
+      closesAt?: Date | null;
+    },
+  ) {
+    return this.prisma.jobOffer.update({
+      where: { id: jobId },
+      data: {
+        ...data,
+        requiredLanguages: data.requiredLanguages,
+        requiredCertifications: data.requiredCertifications,
+      },
+      include: {
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
       },
     });
   }
@@ -161,6 +223,27 @@ export class JobsRepository {
                 user: true,
               },
             },
+          },
+        },
+      },
+    });
+  }
+
+  updateStatus(
+    jobId: string,
+    status: JobOfferStatus,
+    publishedAt?: Date | null,
+  ) {
+    return this.prisma.jobOffer.update({
+      where: { id: jobId },
+      data: {
+        status,
+        ...(publishedAt !== undefined ? { publishedAt } : {}),
+      },
+      include: {
+        _count: {
+          select: {
+            applications: true,
           },
         },
       },

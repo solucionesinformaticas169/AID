@@ -56,7 +56,7 @@ export default function CompanyRegisterPage() {
         throw new Error(payload.message ?? "No se pudo crear la cuenta empresarial.");
       }
 
-      setSuccess("Empresa registrada. Tu cuenta quedo pendiente de aprobacion.");
+      setSuccess("Empresa registrada. Ya puedes iniciar sesion.");
       window.setTimeout(() => {
         window.location.assign("/login");
       }, 1200);

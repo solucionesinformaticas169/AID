@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { JobApplicationStatus, Prisma } from "@prisma/client";
+import { DocumentType, JobApplicationStatus, Prisma } from "@prisma/client";
 
 import { AuditService } from "../audit/audit.service";
 import { AUDIT_ENTITY_TYPES } from "../audit/audit.constants";
@@ -47,6 +47,22 @@ export class ApplicationsService {
 
     if (!hydratedCandidateProfile) {
       throw new NotFoundException(`Perfil candidato ${candidateProfile.id} no encontrado.`);
+    }
+
+    const hasCurriculumVitae = hydratedCandidateProfile.documents.some(
+      (document) => document.type === DocumentType.CV,
+    );
+
+    if (!hasCurriculumVitae) {
+      throw new BadRequestException(
+        "Debes subir tu hoja de vida en PDF antes de postular a una vacante.",
+      );
+    }
+
+    if ((hydratedCandidateProfile.profileCompletion ?? 0) < 50) {
+      throw new BadRequestException(
+        "Debes completar al menos el 50% de tu hoja de vida antes de postular.",
+      );
     }
 
     const selectedEducation = hydratedCandidateProfile.educationRecords.filter((education) =>
@@ -265,7 +281,30 @@ export class ApplicationsService {
       averageCompatibility:
         totalApplications > 0 ? Math.round(weightedCompatibility / totalApplications) : 0,
       byStatus,
-      recentApplications,
+      recentApplications: recentApplications.map((application) => ({
+        id: application.id,
+        status: application.status,
+        compatibilityScore: application.compatibilityScore,
+        appliedAt: application.appliedAt,
+        candidate: {
+          id: application.candidateProfile.user.id,
+          name:
+            `${application.candidateProfile.user.firstName} ${application.candidateProfile.user.lastName}`.trim(),
+          email: application.candidateProfile.user.email,
+        },
+        jobOffer: {
+          id: application.jobOffer.id,
+          title: application.jobOffer.title,
+          companyId: application.jobOffer.companyId,
+        },
+        timelineEntries: application.timelineEntries.map((entry) => ({
+          id: entry.id,
+          status: entry.status,
+          title: entry.title,
+          description: entry.description,
+          createdAt: entry.createdAt,
+        })),
+      })),
     };
   }
 

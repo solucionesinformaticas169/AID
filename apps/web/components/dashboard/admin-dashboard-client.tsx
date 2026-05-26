@@ -155,14 +155,15 @@ function ResourceSection<T>({
         ) : (
           <DashboardTable columns={columns} rows={paginatedRows} />
         )}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             {filteredRows.length} registros - pagina {currentPage} de {totalPages}
           </p>
-          <div className="flex gap-2">
+          <div className="flex w-full gap-2 sm:w-auto">
             <Button
               variant="outline"
               size="sm"
+              className="flex-1 sm:flex-none"
               disabled={currentPage === 1}
               onClick={() => setPage((value) => Math.max(1, value - 1))}
             >
@@ -171,6 +172,7 @@ function ResourceSection<T>({
             <Button
               variant="outline"
               size="sm"
+              className="flex-1 sm:flex-none"
               disabled={currentPage >= totalPages}
               onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
             >
@@ -185,6 +187,17 @@ function ResourceSection<T>({
 
 function statusBadge(label: string) {
   return <Badge variant="secondary">{label}</Badge>;
+}
+
+function formatOperationalCompanyStatus(status: AdminConsoleCompany["operationalStatus"]) {
+  const labels: Record<AdminConsoleCompany["operationalStatus"], string> = {
+    ACTIVA: "Activa",
+    SIN_CARGAS: "Sin cargas gratuitas",
+    PLAN_ACTIVO: "Plan activo",
+    RECHAZADA: "Rechazada",
+  };
+
+  return labels[status];
 }
 
 function ConfigurationCard({ label, enabled }: { label: string; enabled: boolean }) {
@@ -211,6 +224,20 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { showToast } = useFeedback();
   const superAdmin = isSuperAdmin(user);
+
+  const scrollToSection = useCallback((sectionId: string) => {
+    const target = document.getElementById(sectionId);
+
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    window.history.replaceState(null, "", `#${sectionId}`);
+  }, []);
 
   const loadConsole = useCallback(async (options?: { notifyOnError?: boolean }) => {
     setIsLoading(true);
@@ -269,48 +296,56 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
       value: String(data.summary.usersRegistered),
       helper: "Base total de cuentas creadas en la plataforma.",
       icon: <Users2 className="size-5" />,
+      sectionId: "a-usuarios",
     },
     {
       label: "Empresas registradas",
       value: String(data.summary.companiesRegistered),
       helper: "Empresas creadas y con trazabilidad administrativa.",
       icon: <Building2 className="size-5" />,
+      sectionId: "a-empresas",
     },
     {
       label: "Vacantes publicadas",
       value: String(data.summary.jobsPublished),
       helper: "Ofertas visibles o aprobadas para salida a mercado.",
       icon: <BriefcaseBusiness className="size-5" />,
+      sectionId: "a-vacantes",
     },
     {
       label: "Postulaciones",
       value: String(data.summary.applicationsCount),
       helper: "Flujo agregado de candidaturas registradas.",
       icon: <FileCheck2 className="size-5" />,
+      sectionId: "a-postulaciones",
     },
     {
       label: "Pagos recibidos",
       value: String(data.summary.paymentsReceived),
       helper: "Cobros conciliados y marcados como pagados.",
       icon: <CreditCard className="size-5" />,
+      sectionId: "a-pagos",
     },
     {
       label: "Planes activos",
       value: String(data.summary.activePlansCount),
       helper: "Suscripciones vigentes o en periodo de prueba.",
       icon: <Receipt className="size-5" />,
+      sectionId: "a-pagos",
     },
     {
       label: "Documentos subidos",
       value: String(data.summary.uploadedDocumentsCount),
       helper: "Archivos de candidatos registrados en storage.",
       icon: <FileText className="size-5" />,
+      sectionId: "a-documentos",
     },
     {
       label: "Alertas de seguridad",
       value: String(data.summary.securityAlertsCount),
       helper: "Bloqueos, reuso de tokens y fallos recientes.",
       icon: <Bell className="size-5" />,
+      sectionId: superAdmin ? "a-seguridad" : "a-usuarios",
     },
   ];
 
@@ -344,7 +379,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
               Consola administrativa con foco en operacion, seguridad, monetizacion y trazabilidad. Cada modulo usa datos reales del backend cuando ya existen endpoints.
             </p>
           </div>
-          <Button variant="outline" onClick={() => void loadConsole({ notifyOnError: true })}>
+          <Button className="w-full sm:w-auto" variant="outline" onClick={() => void loadConsole({ notifyOnError: true })}>
             Refrescar datos
           </Button>
         </div>
@@ -358,6 +393,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
             value={card.value}
             helper={card.helper}
             icon={card.icon}
+            onClick={() => scrollToSection(card.sectionId)}
           />
         ))}
       </section>
@@ -423,12 +459,23 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
         title="Empresas"
         description="Panorama de empresas, aprobacion, actividad y uso general del ecosistema."
         rows={data.companies}
-        filters={["Todos", "PENDING", "APPROVED", "REJECTED"]}
+        filters={["Todos", "Activa", "Sin cargas gratuitas", "Plan activo", "Rechazada"]}
         defaultFilter="Todos"
-        searchPlaceholder="Buscar empresa o ubicacion"
-        getFilterValue={(row) => row.status}
+        searchPlaceholder="Buscar empresa, RUC, industria o ubicacion"
+        getFilterValue={(row) => formatOperationalCompanyStatus(row.operationalStatus)}
         matchesSearch={(row, search) =>
-          [row.name, row.city ?? "", row.country ?? ""]
+          [
+            row.name,
+            row.commercialName ?? "",
+            row.taxId ?? "",
+            row.industry ?? "",
+            row.address ?? "",
+            row.billingEmail ?? "",
+            row.city ?? "",
+            row.country ?? "",
+            row.activePlanName,
+            formatOperationalCompanyStatus(row.operationalStatus),
+          ]
             .map(normalizeText)
             .some((value) => value.includes(search))
         }
@@ -439,14 +486,32 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
             render: (row) => (
               <div>
                 <p className="font-medium">{row.name}</p>
-                <p className="text-sm text-muted-foreground">{[row.city, row.country].filter(Boolean).join(", ") || "Sin ubicacion"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {row.commercialName || "Sin nombre comercial"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {[row.city, row.country].filter(Boolean).join(", ") || "Sin ubicacion"}
+                </p>
+              </div>
+            ),
+          },
+          {
+            key: "details",
+            label: "Datos",
+            render: (row) => (
+              <div className="space-y-1 text-sm">
+                <p>RUC: {row.taxId || "Sin RUC"}</p>
+                <p>Direccion: {row.address || "Sin direccion"}</p>
+                <p>Sector: {row.industry || "Sin sector"}</p>
+                <p>Cargo responsable: {row.contactPosition || "Sin cargo"}</p>
+                <p>Facturacion: {row.billingEmail || "Sin correo"}</p>
               </div>
             ),
           },
           {
             key: "status",
             label: "Estado",
-            render: (row) => statusBadge(row.status),
+            render: (row) => statusBadge(formatOperationalCompanyStatus(row.operationalStatus)),
           },
           {
             key: "users",
@@ -459,9 +524,18 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
             render: (row) => String(row.jobs),
           },
           {
-            key: "subscriptions",
-            label: "Planes",
-            render: (row) => String(row.subscriptions),
+            key: "plan",
+            label: "Plan",
+            render: (row) => (
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">{row.activePlanName}</p>
+                <p className="text-muted-foreground">
+                  {row.hasActiveSubscription
+                    ? "Suscripcion activa"
+                    : `${row.freePostsRemaining} cargas gratuitas disponibles`}
+                </p>
+              </div>
+            ),
           },
         ]}
         emptyTitle="No hay empresas registradas"

@@ -16,14 +16,23 @@ export function CandidateLayoutShell({
 }) {
   const pathname = usePathname();
   const isOpportunitiesPage = pathname === "/candidato/oportunidades";
+  const isResumePage = pathname === "/candidato/hoja-de-vida";
 
   return (
     <DashboardLayoutShell
-      title={isOpportunitiesPage ? "Busqueda de ofertas laborales" : "Dashboard de candidato"}
+      title={
+        isOpportunitiesPage
+          ? "Busqueda de ofertas laborales"
+          : isResumePage
+            ? "Hoja de vida"
+            : "Dashboard de candidato"
+      }
       description={
         isOpportunitiesPage
           ? "Encuentra oportunidades afines a tu perfil."
-          : "Gestiona tu perfil profesional, documentos y postulaciones desde una vista protegida."
+          : isResumePage
+            ? "Completa tu hoja de vida y organiza tu informacion profesional por secciones."
+            : "Gestiona tu perfil profesional, documentos y postulaciones desde una vista protegida."
       }
       roleLabel="Candidato"
       user={user}
@@ -33,4 +42,3 @@ export function CandidateLayoutShell({
     </DashboardLayoutShell>
   );
 }
-

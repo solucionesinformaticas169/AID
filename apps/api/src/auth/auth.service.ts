@@ -103,7 +103,7 @@ export class AuthService {
 
     return {
       message: isCompanyAdminRegistration
-        ? "Cuenta empresarial creada correctamente. La empresa queda pendiente de aprobacion."
+        ? "Cuenta empresarial creada correctamente. Ya puedes iniciar sesion."
         : "Usuario registrado correctamente. Revisa tu correo para verificar la cuenta.",
       user: this.serializeUser(
         user.id,
@@ -153,16 +153,6 @@ export class AuthService {
     }
 
     const roleCode = user.primaryRole?.code ?? ROLE_CODES.CANDIDATE;
-    const companyAccess = this.resolveCompanyAccess(user.companyUsers);
-
-    if (
-      (roleCode === ROLE_CODES.COMPANY_ADMIN || roleCode === ROLE_CODES.RECRUITER) &&
-      companyAccess?.company?.status &&
-      companyAccess.company.status !== "APPROVED"
-    ) {
-      throw new UnauthorizedException("Tu empresa aun no ha sido aprobada por AIDLABORAL.");
-    }
-
     const companyId = this.resolveCompanyId(user.companyUsers);
     await this.securityService.clearFailedLogins(payload.email, requestMetadata.ip);
     const session = await this.createSessionBundle(user.id, user.email, roleCode, companyId);
@@ -558,14 +548,6 @@ export class AuthService {
     return companyUsers?.[0]?.companyId ?? null;
   }
 
-  private resolveCompanyAccess(
-    companyUsers:
-      | Array<{ companyId: string; company?: { status: string } | null }>
-      | undefined,
-  ) {
-    return companyUsers?.[0] ?? null;
-  }
-
   private assertCompanyRegistrationPayload(payload: RegisterDto) {
     if (!payload.companyName) {
       throw new BadRequestException("La razon social es obligatoria.");
@@ -597,12 +579,6 @@ export class AuthService {
 
     const baseSlug = this.slugify(payload.commercialName || payload.companyName || payload.email);
     const companySlug = await this.resolveAvailableCompanySlug(baseSlug);
-    const companyDescription = [
-      payload.address ? `Direccion: ${payload.address}` : null,
-      payload.contactPosition ? `Responsable: ${payload.contactPosition}` : null,
-    ]
-      .filter(Boolean)
-      .join(" | ");
 
     return this.authRepository.createCompanyWithAdmin({
       user: {
@@ -615,9 +591,11 @@ export class AuthService {
       },
       company: {
         name: payload.companyName ?? payload.commercialName ?? payload.email,
+        commercialName: payload.commercialName,
         slug: companySlug,
         taxId: payload.taxId ?? "",
-        description: companyDescription || undefined,
+        address: payload.address,
+        contactPosition: payload.contactPosition,
         website: payload.website,
         industry: payload.industry,
         city: payload.city,

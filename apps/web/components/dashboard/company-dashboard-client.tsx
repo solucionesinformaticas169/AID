@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -22,8 +23,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  getCompanyApplicationStatistics,
+  updateApplicationStatus,
+  type CompanyApplicationStatistics,
+} from "@/lib/api/applications";
+import {
+  createJob,
+  getCompanyJobs,
+  updateJob,
+  updateJobVisibility,
+  type CompanyJob,
+} from "@/lib/api/jobs";
 import {
   createCheckout,
+  confirmPayphoneButtonPayment,
   getApiBaseUrl,
   getCompanyBillingSummary,
   getCompanyInvoices,
@@ -35,14 +50,22 @@ import {
   type PersistedPlan,
 } from "@/lib/api/payments";
 import type { SessionUser } from "@/lib/auth/session";
-import { companyApplicationStats, vacancies } from "@/lib/mock-data";
 
-const vacancyFilters = ["Todas", "Hibrido", "Remoto", "Presencial"];
+const vacancyFilters = ["Todas", "Borrador", "Publicada", "Pausada", "Cerrada"];
 const providerLabels = {
   STRIPE: "Stripe",
   PAYPAL: "PayPal",
   PAYPHONE: "PayPhone",
 } as const;
+const applicationStatusOrder = [
+  "APPLIED",
+  "REVIEWING",
+  "SHORTLISTED",
+  "INTERVIEW",
+  "REJECTED",
+  "HIRED",
+] as const;
+const employmentCountry = "Ecuador";
 
 type CompanyDashboardClientProps = {
   session: SessionUser | null;
@@ -73,6 +96,45 @@ function formatStatus(status: string) {
     .replace(/(^\w)|(\s\w)/g, (match) => match.toUpperCase());
 }
 
+function formatApplicationStatus(status: string) {
+  const labels: Record<string, string> = {
+    APPLIED: "Enviado",
+    REVIEWING: "En revision",
+    SHORTLISTED: "Preseleccionado",
+    INTERVIEW: "Entrevista",
+    REJECTED: "Rechazado",
+    HIRED: "Contratado",
+  };
+
+  return labels[status] ?? status;
+}
+
+function formatJobStatus(status: string) {
+  const labels: Record<string, string> = {
+    DRAFT: "Borrador",
+    PUBLISHED: "Publicada",
+    PAUSED: "Pausada",
+    CLOSED: "Cerrada",
+  };
+
+  return labels[status] ?? status;
+}
+
+function formatDateTimeLocalValue(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+}
+
 function buildInvoicePdfUrl(invoiceId: string) {
   return `${getApiBaseUrl()}/invoices/${invoiceId}/pdf`;
 }
@@ -84,26 +146,33 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
   const [payments, setPayments] = useState<CompanyPayment[]>([]);
   const [invoices, setInvoices] = useState<CompanyInvoice[]>([]);
   const [plans, setPlans] = useState<PersistedPlan[]>([]);
+  const [companyJobs, setCompanyJobs] = useState<CompanyJob[]>([]);
+  const [applicationStatistics, setApplicationStatistics] =
+    useState<CompanyApplicationStatistics | null>(null);
   const [isBillingLoading, setIsBillingLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [activeCheckoutKey, setActiveCheckoutKey] = useState<string | null>(null);
+  const [activeApplicationId, setActiveApplicationId] = useState<string | null>(null);
+  const [isCreatingJob, setIsCreatingJob] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const { closeModal, openModal, showToast } = useFeedback();
+  const searchParams = useSearchParams();
 
   const companyId = session?.companyId ?? process.env.NEXT_PUBLIC_DEMO_COMPANY_ID ?? "";
 
   const filteredVacancies = useMemo(
     () =>
-      vacancies.filter((vacancy) => {
+      companyJobs.filter((vacancy) => {
         const matchesFilter =
-          activeFilter === "Todas" || vacancy.modality.toLowerCase() === activeFilter.toLowerCase();
+          activeFilter === "Todas" || formatJobStatus(vacancy.status) === activeFilter;
         const matchesQuery =
           vacancy.title.toLowerCase().includes(query.toLowerCase()) ||
-          vacancy.location.toLowerCase().includes(query.toLowerCase());
+          [vacancy.city ?? "", vacancy.country ?? ""].join(" ").toLowerCase().includes(query.toLowerCase());
 
         return matchesFilter && matchesQuery;
       }),
-    [activeFilter, query],
+    [activeFilter, companyJobs, query],
   );
 
   const loadBillingData = useCallback(
@@ -118,17 +187,28 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
       try {
         setBillingError(null);
 
-        const [summaryResponse, paymentsResponse, invoicesResponse, plansResponse] = await Promise.all([
+        const [
+          applicationStatisticsResponse,
+          summaryResponse,
+          paymentsResponse,
+          invoicesResponse,
+          plansResponse,
+          companyJobsResponse,
+        ] = await Promise.all([
+          getCompanyApplicationStatistics(companyId),
           getCompanyBillingSummary(companyId),
           getCompanyPayments(companyId),
           getCompanyInvoices(companyId),
           getPlans(),
+          getCompanyJobs(companyId),
         ]);
 
+        setApplicationStatistics(applicationStatisticsResponse);
         setBillingSummary(summaryResponse);
         setPayments(paymentsResponse);
         setInvoices(invoicesResponse);
         setPlans(plansResponse);
+        setCompanyJobs(companyJobsResponse);
 
         if (options?.showSuccessToast) {
           showToast({
@@ -165,13 +245,241 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
     void loadBillingData();
   }, [companyId, loadBillingData]);
 
+  useEffect(() => {
+    const billingState = searchParams.get("billing");
+    const payphoneId = searchParams.get("id");
+    const clientTransactionId = searchParams.get("clientTransactionId");
+
+    if (billingState !== "payphone-return" || !payphoneId || !clientTransactionId) {
+      if (billingState === "cancel") {
+        showToast({
+          title: "Pago cancelado",
+          description: "El proceso de cobro fue cancelado antes de completarse.",
+        });
+        window.history.replaceState({}, "", "/empresa");
+      }
+      return;
+    }
+
+    let isActive = true;
+
+    void (async () => {
+      try {
+        const response = await confirmPayphoneButtonPayment({
+          id: Number(payphoneId),
+          clientTransactionId,
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        showToast({
+          title: "Pago confirmado",
+          description: response.message,
+        });
+        setIsRefreshing(true);
+        void loadBillingData();
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        showToast({
+          title: "No se pudo confirmar el pago",
+          description:
+            error instanceof Error
+              ? error.message
+              : "PayPhone no pudo confirmar la transaccion.",
+        });
+      } finally {
+        if (isActive) {
+          window.history.replaceState({}, "", "/empresa");
+        }
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, [loadBillingData, searchParams, showToast]);
+
   const triggerRefresh = () => {
     setIsRefreshing(true);
     void loadBillingData({ showSuccessToast: true });
   };
 
+  const buildJobPayload = useCallback((formData: FormData) => {
+    const minimumYearsExperienceRaw = String(
+      formData.get("minimumYearsExperience") ?? "",
+    ).trim();
+    const salaryMinRaw = String(formData.get("salaryMin") ?? "").trim();
+    const salaryMaxRaw = String(formData.get("salaryMax") ?? "").trim();
+    const publishedAtRaw = String(formData.get("publishedAt") ?? "").trim();
+    const closesAtRaw = String(formData.get("closesAt") ?? "").trim();
+    const requiredLanguages = String(formData.get("requiredLanguages") ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const requiredCertifications = String(formData.get("requiredCertifications") ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    return {
+      title: String(formData.get("title") ?? "").trim(),
+      description: String(formData.get("description") ?? "").trim(),
+      requirements: String(formData.get("requirements") ?? "").trim() || undefined,
+      responsibilities:
+        String(formData.get("responsibilities") ?? "").trim() || undefined,
+      benefits: String(formData.get("benefits") ?? "").trim() || undefined,
+      city: String(formData.get("city") ?? "").trim() || undefined,
+      country: employmentCountry,
+      requiredEducationLevel:
+        String(formData.get("requiredEducationLevel") ?? "").trim() || undefined,
+      minimumYearsExperience: minimumYearsExperienceRaw
+        ? Number(minimumYearsExperienceRaw)
+        : undefined,
+      salaryMin: salaryMinRaw ? Number(salaryMinRaw) : undefined,
+      salaryMax: salaryMaxRaw ? Number(salaryMaxRaw) : undefined,
+      publishedAt: publishedAtRaw ? new Date(publishedAtRaw).toISOString() : undefined,
+      closesAt: closesAtRaw ? new Date(closesAtRaw).toISOString() : undefined,
+      requiredLanguages: requiredLanguages.length > 0 ? requiredLanguages : undefined,
+      requiredCertifications:
+        requiredCertifications.length > 0 ? requiredCertifications : undefined,
+    };
+  }, []);
+
+  const handleCreateJob = useCallback(
+    async (formData: FormData) => {
+      setIsCreatingJob(true);
+
+      try {
+        await createJob(buildJobPayload(formData));
+        closeModal();
+        showToast({
+          title: "Vacante creada",
+          description:
+            "La vacante fue registrada correctamente en el backend de empresa.",
+        });
+        setIsRefreshing(true);
+        void loadBillingData();
+      } catch (error) {
+        showToast({
+          title: "No se pudo crear la vacante",
+          description:
+            error instanceof Error ? error.message : "Error inesperado al crear la vacante.",
+        });
+      } finally {
+        setIsCreatingJob(false);
+      }
+    },
+    [buildJobPayload, closeModal, loadBillingData, showToast],
+  );
+
+  const handleEditJob = useCallback(
+    async (jobId: string, formData: FormData) => {
+      setActiveJobId(jobId);
+
+      try {
+        await updateJob(jobId, buildJobPayload(formData));
+        closeModal();
+        showToast({
+          title: "Vacante actualizada",
+          description: "Los cambios fueron guardados correctamente.",
+        });
+        setIsRefreshing(true);
+        void loadBillingData();
+      } catch (error) {
+        showToast({
+          title: "No se pudo actualizar la vacante",
+          description:
+            error instanceof Error ? error.message : "Error inesperado al actualizar la vacante.",
+        });
+      } finally {
+        setActiveJobId(null);
+      }
+    },
+    [buildJobPayload, closeModal, loadBillingData, showToast],
+  );
+
+  const handleJobVisibility = useCallback(
+    async (jobId: string, isActive: boolean) => {
+      setActiveJobId(jobId);
+
+      try {
+        await updateJobVisibility(jobId, isActive);
+        showToast({
+          title: isActive ? "Vacante activada" : "Vacante inactivada",
+          description: isActive
+            ? "La vacante ya esta visible como activa."
+            : "La vacante quedo inactiva correctamente.",
+        });
+        setIsRefreshing(true);
+        void loadBillingData();
+      } catch (error) {
+        showToast({
+          title: "No se pudo actualizar la vacante",
+          description:
+            error instanceof Error ? error.message : "Error inesperado al cambiar el estado.",
+        });
+      } finally {
+        setActiveJobId(null);
+      }
+    },
+    [loadBillingData, showToast],
+  );
+
+  const handleApplicationStatusUpdate = useCallback(
+    async (
+      applicationId: string,
+      status: (typeof applicationStatusOrder)[number],
+    ) => {
+      setActiveApplicationId(applicationId);
+
+      try {
+        await updateApplicationStatus(applicationId, {
+          status,
+        });
+        showToast({
+          title: "Estado actualizado",
+          description: `La postulacion paso a ${formatApplicationStatus(status)}.`,
+        });
+        setIsRefreshing(true);
+        void loadBillingData();
+      } catch (error) {
+        showToast({
+          title: "No se pudo actualizar",
+          description:
+            error instanceof Error
+              ? error.message
+              : "No se pudo cambiar el estado de la postulacion.",
+        });
+      } finally {
+        setActiveApplicationId(null);
+      }
+    },
+    [loadBillingData, showToast],
+  );
+
   const handleCheckout = useCallback(
-    async (plan: PersistedPlan, provider: keyof typeof providerLabels) => {
+    async (
+      plan: PersistedPlan,
+      provider: keyof typeof providerLabels,
+      options?: {
+        customerEmail?: string;
+        payerPhoneNumber?: string;
+        payerCountryCode?: string;
+        billingFirstName?: string;
+        billingLastName?: string;
+        billingCompanyName?: string;
+        billingContactPhone?: string;
+        billingTaxId?: string;
+        billingAddress?: string;
+        billingCity?: string;
+        billingCountry?: string;
+      },
+    ) => {
       if (!companyId) {
         showToast({
           title: "Empresa no identificada",
@@ -189,8 +497,18 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
           companyId,
           planCode: plan.code,
           provider,
-          customerEmail: session?.email ?? undefined,
-          successUrl: `${origin}/empresa?billing=success`,
+          customerEmail: options?.customerEmail ?? session?.email ?? undefined,
+          payerPhoneNumber: options?.payerPhoneNumber,
+          payerCountryCode: options?.payerCountryCode,
+          billingFirstName: options?.billingFirstName,
+          billingLastName: options?.billingLastName,
+          billingCompanyName: options?.billingCompanyName,
+          billingContactPhone: options?.billingContactPhone,
+          billingTaxId: options?.billingTaxId,
+          billingAddress: options?.billingAddress,
+          billingCity: options?.billingCity,
+          billingCountry: options?.billingCountry,
+          successUrl: `${origin}/empresa?billing=payphone-return`,
           cancelUrl: `${origin}/empresa?billing=cancel`,
         });
 
@@ -201,7 +519,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
         });
 
         if (response.checkout.checkoutUrl) {
-          window.open(response.checkout.checkoutUrl, "_blank", "noopener,noreferrer");
+          window.location.assign(response.checkout.checkoutUrl);
         }
 
         setIsRefreshing(true);
@@ -223,33 +541,161 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
 
   const openCheckoutModal = useCallback(
     (plan: PersistedPlan) => {
+      const checkoutKey = `${plan.code}-PAYPHONE`;
+
       openModal({
         title: `Activar plan ${plan.name}`,
-        description: "Selecciona un proveedor de pago para iniciar el checkout SaaS real.",
+        description: "Completa los datos de facturacion para continuar con el cobro del plan.",
         content: (
-          <div className="grid gap-3">
-            {(["STRIPE", "PAYPAL", "PAYPHONE"] as const).map((provider) => {
-              const checkoutKey = `${plan.code}-${provider}`;
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
 
-              return (
-                <Button
-                  key={provider}
-                  variant="outline"
-                  disabled={activeCheckoutKey === checkoutKey}
-                  onClick={() => void handleCheckout(plan, provider)}
-                >
-                  <CreditCard className="mr-2 size-4" />
-                  {activeCheckoutKey === checkoutKey
-                    ? "Preparando checkout..."
-                    : `Pagar con ${providerLabels[provider]}`}
-                </Button>
-              );
-            })}
-          </div>
+              const formData = new FormData(event.currentTarget);
+              const customerEmail = String(formData.get("customerEmail") ?? "").trim();
+              const payerPhoneNumber = String(formData.get("payerPhoneNumber") ?? "")
+                .replace(/\D/g, "")
+                .trim();
+              const payerCountryCode = String(formData.get("payerCountryCode") ?? "593")
+                .replace(/\D/g, "")
+                .trim();
+              const billingFirstName = String(formData.get("billingFirstName") ?? "").trim();
+              const billingLastName = String(formData.get("billingLastName") ?? "").trim();
+              const billingCompanyName = String(formData.get("billingCompanyName") ?? "").trim();
+              const billingContactPhone = String(formData.get("billingContactPhone") ?? "").trim();
+              const billingTaxId = String(formData.get("billingTaxId") ?? "").trim();
+              const billingAddress = String(formData.get("billingAddress") ?? "").trim();
+              const billingCity = String(formData.get("billingCity") ?? "").trim();
+              const billingCountry = String(formData.get("billingCountry") ?? "Ecuador").trim();
+
+              void handleCheckout(plan, "PAYPHONE", {
+                customerEmail: customerEmail || undefined,
+                payerPhoneNumber,
+                payerCountryCode,
+                billingFirstName,
+                billingLastName,
+                billingCompanyName,
+                billingContactPhone,
+                billingTaxId,
+                billingAddress,
+                billingCity,
+                billingCountry,
+              });
+            }}
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium">Nombres</label>
+                <Input
+                  name="billingFirstName"
+                  required
+                  placeholder="Ingresa los nombres del responsable"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Apellidos</label>
+                <Input
+                  name="billingLastName"
+                  required
+                  placeholder="Ingresa los apellidos del responsable"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium">Organizacion o empresa</label>
+                <Input
+                  name="billingCompanyName"
+                  required
+                  placeholder="Ingresa la razon social o nombre comercial"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium">Correo de facturacion</label>
+                <Input
+                  name="customerEmail"
+                  type="email"
+                  required
+                  placeholder="Ingresa el correo de facturacion"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Telefono de contacto</label>
+                <Input
+                  name="billingContactPhone"
+                  required
+                  inputMode="numeric"
+                  placeholder="Ej. 022345678 o 0999123456"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">RUC</label>
+                <Input
+                  name="billingTaxId"
+                  required
+                  inputMode="numeric"
+                  placeholder="Ingresa el RUC de la empresa"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium">Direccion</label>
+                <Input
+                  name="billingAddress"
+                  required
+                  placeholder="Ingresa la direccion de facturacion"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Ciudad</label>
+                <Input
+                  name="billingCity"
+                  required
+                  placeholder="Ingresa la ciudad"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Pais</label>
+                <Input
+                  name="billingCountry"
+                  required
+                  defaultValue="Ecuador"
+                  disabled
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Codigo de pais</label>
+                <Input
+                  name="payerCountryCode"
+                  required
+                  defaultValue="593"
+                  placeholder="593"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Telefono PayPhone</label>
+                <Input
+                  name="payerPhoneNumber"
+                  required
+                  inputMode="numeric"
+                  placeholder="Ej. 999123456"
+                />
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Al continuar prepararemos el cobro del plan. En la integracion actual, PayPhone enviara la solicitud al numero del titular que aprobara el pago.
+            </p>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={activeCheckoutKey === checkoutKey}>
+                <CreditCard className="mr-2 size-4" />
+                {activeCheckoutKey === checkoutKey
+                  ? "Preparando pago..."
+                  : "Continuar al pago"}
+              </Button>
+            </div>
+          </form>
         ),
       });
     },
-    [activeCheckoutKey, handleCheckout, openModal],
+    [activeCheckoutKey, handleCheckout, openModal, session?.email],
   );
 
   if (isBillingLoading) {
@@ -272,6 +718,13 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
     planStatus && planStatus.freePostsIncluded > 0
       ? Math.min((planStatus.freePostsUsed / planStatus.freePostsIncluded) * 100, 100)
       : 0;
+  const atsStats = applicationStatusOrder.map((status) => {
+    const row = applicationStatistics?.byStatus.find((item) => item.status === status);
+    return {
+      status,
+      total: row?.total ?? 0,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -319,11 +772,122 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
               onClick={() =>
                 openModal({
                   title: "Nueva vacante",
-                  description: "Sistema modal para alta rapida inspirado en Workday.",
+                  description: "Completa los datos base para registrar una vacante nueva.",
                   content: (
-                    <p className="text-sm text-muted-foreground">
-                      Aqui podemos enchufar el formulario conectado a la API cuando pases a la siguiente orden.
-                    </p>
+                    <form
+                      className="grid gap-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void handleCreateJob(new FormData(event.currentTarget));
+                      }}
+                    >
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="md:col-span-2">
+                          <label className="mb-2 block text-sm font-medium">Titulo</label>
+                          <Input name="title" required placeholder="Ej. Desarrollador Full Stack" />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">Ciudad</label>
+                          <Input name="city" placeholder="Ej. Cuenca" />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">Anos de experiencia</label>
+                          <Input
+                            name="minimumYearsExperience"
+                            type="number"
+                            min={0}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">Remuneracion minima</label>
+                          <Input
+                            name="salaryMin"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            placeholder="Ej. 800"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">Remuneracion maxima</label>
+                          <Input
+                            name="salaryMax"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            placeholder="Ej. 1200"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">Visible desde</label>
+                          <Input name="publishedAt" type="datetime-local" />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">Visible hasta</label>
+                          <Input name="closesAt" type="datetime-local" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="mb-2 block text-sm font-medium">Descripcion</label>
+                          <Textarea
+                            name="description"
+                            required
+                            placeholder="Describe el rol, contexto y objetivo de la vacante."
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="mb-2 block text-sm font-medium">Requisitos</label>
+                          <Textarea
+                            name="requirements"
+                            placeholder="Conocimientos, herramientas, experiencia requerida."
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="mb-2 block text-sm font-medium">Responsabilidades</label>
+                          <Textarea
+                            name="responsibilities"
+                            placeholder="Responsabilidades principales del cargo."
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="mb-2 block text-sm font-medium">Beneficios</label>
+                          <Textarea
+                            name="benefits"
+                            placeholder="Beneficios, modalidad, bonos, extras."
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">Nivel educativo</label>
+                          <Input
+                            name="requiredEducationLevel"
+                            placeholder="Ej. Ingenieria en Sistemas"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">Pais</label>
+                          <Input value={employmentCountry} disabled />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="mb-2 block text-sm font-medium">Idiomas requeridos</label>
+                          <Input
+                            name="requiredLanguages"
+                            placeholder="Ej. Ingles, Portugues"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="mb-2 block text-sm font-medium">Certificaciones requeridas</label>
+                          <Input
+                            name="requiredCertifications"
+                            placeholder="Ej. Scrum, AWS Cloud Practitioner"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button type="submit" disabled={isCreatingJob}>
+                          {isCreatingJob ? "Creando..." : "Crear vacante"}
+                        </Button>
+                      </div>
+                    </form>
                   ),
                 })
               }
@@ -347,27 +911,203 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
                     render: (row) => (
                       <div>
                         <p className="font-medium">{row.title}</p>
-                        <p className="text-sm text-muted-foreground">{row.location}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {[row.city, row.country].filter(Boolean).join(", ") || "Sin ubicacion"}
+                        </p>
                       </div>
                     ),
                   },
                   {
-                    key: "modality",
-                    label: "Modalidad",
-                    render: (row) => <Badge variant="outline">{row.modality}</Badge>,
+                    key: "status",
+                    label: "Estado",
+                    render: (row) => <Badge variant="outline">{formatJobStatus(row.status)}</Badge>,
                   },
                   {
-                    key: "salary",
-                    label: "Rango",
-                    render: (row) => <span>{row.salary}</span>,
+                    key: "experience",
+                    label: "Experiencia",
+                    render: (row) => <span>{row.minimumYearsExperience} anos</span>,
                   },
                   {
                     key: "applicants",
                     label: "Postulantes",
+                    render: (row) => <span className="font-medium">{row._count.applications}</span>,
+                  },
+                  {
+                    key: "actions",
+                    label: "Acciones",
                     render: (row) => (
-                      <span className="font-medium">
-                        {Math.max(4, 14 - vacancies.findIndex((item) => item.id === row.id) * 2)}
-                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={activeJobId === row.id}
+                          onClick={() =>
+                            openModal({
+                              title: "Editar vacante",
+                              description: "Actualiza la informacion principal de esta vacante.",
+                              content: (
+                                <form
+                                  className="grid gap-4"
+                                  onSubmit={(event) => {
+                                    event.preventDefault();
+                                    void handleEditJob(row.id, new FormData(event.currentTarget));
+                                  }}
+                                >
+                                  <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="md:col-span-2">
+                                      <label className="mb-2 block text-sm font-medium">Titulo</label>
+                                      <Input
+                                        name="title"
+                                        required
+                                        defaultValue={row.title}
+                                        placeholder="Ej. Desarrollador Full Stack"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-2 block text-sm font-medium">Ciudad</label>
+                                      <Input
+                                        name="city"
+                                        defaultValue={row.city ?? ""}
+                                        placeholder="Ej. Cuenca"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-2 block text-sm font-medium">Anos de experiencia</label>
+                                      <Input
+                                        name="minimumYearsExperience"
+                                        type="number"
+                                        min={0}
+                                        defaultValue={row.minimumYearsExperience}
+                                        placeholder="0"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-2 block text-sm font-medium">Remuneracion minima</label>
+                                      <Input
+                                        name="salaryMin"
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        defaultValue={row.salaryMin ?? ""}
+                                        placeholder="Ej. 800"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-2 block text-sm font-medium">Remuneracion maxima</label>
+                                      <Input
+                                        name="salaryMax"
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        defaultValue={row.salaryMax ?? ""}
+                                        placeholder="Ej. 1200"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-2 block text-sm font-medium">Visible desde</label>
+                                      <Input
+                                        name="publishedAt"
+                                        type="datetime-local"
+                                        defaultValue={formatDateTimeLocalValue(row.publishedAt)}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-2 block text-sm font-medium">Visible hasta</label>
+                                      <Input
+                                        name="closesAt"
+                                        type="datetime-local"
+                                        defaultValue={formatDateTimeLocalValue(row.closesAt)}
+                                      />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                      <label className="mb-2 block text-sm font-medium">Descripcion</label>
+                                      <Textarea
+                                        name="description"
+                                        required
+                                        defaultValue={row.description ?? ""}
+                                        placeholder="Describe el rol, contexto y objetivo de la vacante."
+                                      />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                      <label className="mb-2 block text-sm font-medium">Requisitos</label>
+                                      <Textarea
+                                        name="requirements"
+                                        defaultValue={row.requirements ?? ""}
+                                        placeholder="Conocimientos, herramientas, experiencia requerida."
+                                      />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                      <label className="mb-2 block text-sm font-medium">Responsabilidades</label>
+                                      <Textarea
+                                        name="responsibilities"
+                                        defaultValue={row.responsibilities ?? ""}
+                                        placeholder="Responsabilidades principales del cargo."
+                                      />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                      <label className="mb-2 block text-sm font-medium">Beneficios</label>
+                                      <Textarea
+                                        name="benefits"
+                                        defaultValue={row.benefits ?? ""}
+                                        placeholder="Beneficios, modalidad, bonos, extras."
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-2 block text-sm font-medium">Nivel educativo</label>
+                                      <Input
+                                        name="requiredEducationLevel"
+                                        defaultValue={row.requiredEducationLevel ?? ""}
+                                        placeholder="Ej. Ingenieria en Sistemas"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-2 block text-sm font-medium">Pais</label>
+                                      <Input value={row.country ?? employmentCountry} disabled />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                      <label className="mb-2 block text-sm font-medium">Idiomas requeridos</label>
+                                      <Input
+                                        name="requiredLanguages"
+                                        defaultValue={(row.requiredLanguages ?? []).join(", ")}
+                                        placeholder="Ej. Ingles, Portugues"
+                                      />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                      <label className="mb-2 block text-sm font-medium">Certificaciones requeridas</label>
+                                      <Input
+                                        name="requiredCertifications"
+                                        defaultValue={(row.requiredCertifications ?? []).join(", ")}
+                                        placeholder="Ej. Scrum, AWS Cloud Practitioner"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-end">
+                                    <Button type="submit" disabled={activeJobId === row.id}>
+                                      {activeJobId === row.id ? "Guardando..." : "Guardar cambios"}
+                                    </Button>
+                                  </div>
+                                </form>
+                              ),
+                            })
+                          }
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant={row.status === "PUBLISHED" ? "secondary" : "default"}
+                          size="sm"
+                          disabled={activeJobId === row.id}
+                          onClick={() =>
+                            void handleJobVisibility(row.id, row.status !== "PUBLISHED")
+                          }
+                        >
+                          {activeJobId === row.id
+                            ? "Actualizando..."
+                            : row.status === "PUBLISHED"
+                              ? "Inactivar"
+                              : "Activar"}
+                        </Button>
+                      </div>
                     ),
                   },
                 ]}
@@ -423,15 +1163,14 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
               <CardTitle className="text-xl">Estadisticas ATS</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
-              {companyApplicationStats.map((item) => (
+              {atsStats.map((item) => (
                 <div key={item.status} className="flex items-center justify-between rounded-[1.25rem] border border-border/70 bg-background/60 px-4 py-3">
-                  <span className="text-sm text-muted-foreground">{item.status}</span>
+                  <span className="text-sm text-muted-foreground">{formatApplicationStatus(item.status)}</span>
                   <span className="text-xl font-semibold">{item.total}</span>
                 </div>
               ))}
               <div className="rounded-[1.25rem] border border-dashed border-border/70 bg-background/40 p-4 text-sm text-muted-foreground">
-                Prioridad en publicaciones: {planStatus?.priorityPublication ? "Activa" : "No incluida"}.
-                Metricas avanzadas: {planStatus?.advancedMetrics ? "Disponibles" : "Basicas"}.
+                Total de postulaciones: {applicationStatistics?.totalApplications ?? 0}. Compatibilidad promedio: {applicationStatistics?.averageCompatibility ?? 0}%.
               </div>
             </CardContent>
           </Card>
@@ -441,8 +1180,84 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
           <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-xl">Postulaciones recientes</CardTitle>
+            <Badge variant="secondary">
+              {applicationStatistics?.recentApplications.length ?? 0} resultados
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            {!applicationStatistics || applicationStatistics.recentApplications.length === 0 ? (
+              <EmptyState
+                title="Sin postulaciones todavia"
+                description="Cuando candidatos postulen a tus vacantes, podras gestionar su estado aqui."
+                icon={<BriefcaseBusiness className="size-6" />}
+              />
+            ) : (
+              <DashboardTable
+                columns={[
+                  {
+                    key: "candidate",
+                    label: "Candidato",
+                    render: (row) => (
+                      <div>
+                        <p className="font-medium">{row.candidate.name}</p>
+                        <p className="text-sm text-muted-foreground">{row.candidate.email}</p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "jobOffer",
+                    label: "Vacante",
+                    render: (row) => (
+                      <div>
+                        <p className="font-medium">{row.jobOffer.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Compatibilidad: {row.compatibilityScore}%
+                        </p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "status",
+                    label: "Estado actual",
+                    render: (row) => (
+                      <Badge variant="outline">{formatApplicationStatus(row.status)}</Badge>
+                    ),
+                  },
+                  {
+                    key: "update",
+                    label: "Actualizar",
+                    render: (row) => (
+                      <select
+                        className="flex h-10 min-w-[180px] rounded-md border border-input bg-background px-3 text-sm"
+                        value={row.status}
+                        disabled={activeApplicationId === row.id}
+                        onChange={(event) =>
+                          void handleApplicationStatusUpdate(
+                            row.id,
+                            event.target.value as (typeof applicationStatusOrder)[number],
+                          )
+                        }
+                      >
+                        {applicationStatusOrder.map((status) => (
+                          <option key={status} value={status}>
+                            {formatApplicationStatus(status)}
+                          </option>
+                        ))}
+                      </select>
+                    ),
+                  },
+                ]}
+                rows={applicationStatistics.recentApplications}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
+          <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="text-xl">Planes SaaS</CardTitle>
-            <Badge variant="secondary">Stripe · PayPal · PayPhone</Badge>
+            <Badge variant="secondary">PayPhone</Badge>
           </CardHeader>
           <CardContent className="grid gap-4 lg:grid-cols-3">
             {plans.length === 0 ? (

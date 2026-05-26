@@ -27,6 +27,22 @@ type AdvancedJobFilters = {
   requirements: string;
 };
 
+type CandidateResumeReadinessResponse = {
+  profile: {
+    profileCompletion?: number | null;
+  } | null;
+  documents?: Array<{
+    id: string;
+    type: string;
+  }>;
+};
+
+type CandidateApplicationReadiness = {
+  profileCompletion: number;
+  hasCv: boolean;
+  canApply: boolean;
+};
+
 const defaultAdvancedFilters: AdvancedJobFilters = {
   offerCode: "",
   title: "",
@@ -344,9 +360,64 @@ export function CandidateOpportunitiesClient() {
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [usingDemoJobs, setUsingDemoJobs] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedJobFilters>(defaultAdvancedFilters);
+  const [applicationReadiness, setApplicationReadiness] = useState<CandidateApplicationReadiness | null>(null);
+  const [isReadinessLoading, setIsReadinessLoading] = useState(true);
   const { showToast, openModal, closeModal } = useFeedback();
 
+  function openApplyBlockedModal() {
+    const profileCompletion = applicationReadiness?.profileCompletion ?? 0;
+    const hasCv = applicationReadiness?.hasCv ?? false;
+
+    openModal({
+      title: "Completa tu perfil antes de postular",
+      description: "Para proteger la calidad de las postulaciones, primero debes cumplir estos requisitos.",
+      content: (
+        <div className="space-y-4">
+          <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4 text-sm">
+            <p className="font-medium text-foreground">
+              Avance actual de hoja de vida: {profileCompletion}%
+            </p>
+            <ul className="mt-3 space-y-2 text-muted-foreground">
+              <li>{hasCv ? "CV en PDF cargado." : "Debes subir tu hoja de vida en PDF."}</li>
+              <li>
+                {profileCompletion >= 50
+                  ? "Tu hoja de vida ya supera el 50% requerido."
+                  : "Debes completar al menos el 50% de tu hoja de vida."}
+              </li>
+            </ul>
+          </div>
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button variant="outline" onClick={closeModal}>
+              Cerrar
+            </Button>
+            <Button
+              onClick={() => {
+                closeModal();
+                router.push("/candidato/hoja-de-vida");
+              }}
+            >
+              Ir a hoja de vida
+            </Button>
+          </div>
+        </div>
+      ),
+    });
+  }
+
   function openApplyModal(job: PublicJob) {
+    if (isReadinessLoading) {
+      showToast({
+        title: "Validando perfil",
+        description: "Espera un momento mientras comprobamos tu hoja de vida.",
+      });
+      return;
+    }
+
+    if (!applicationReadiness?.canApply) {
+      openApplyBlockedModal();
+      return;
+    }
+
     openModal({
       title: `Postular a ${job.title}`,
       description: `Empresa: ${job.company.name}`,
@@ -672,6 +743,55 @@ export function CandidateOpportunitiesClient() {
   useEffect(() => {
     void loadPublicOffers();
   }, [loadPublicOffers]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadApplicationReadiness = async () => {
+      try {
+        setIsReadinessLoading(true);
+        const response = await fetch("/api/candidate/resume", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("No se pudo validar la hoja de vida del candidato.");
+        }
+
+        const payload = (await response.json()) as CandidateResumeReadinessResponse;
+        const profileCompletion = payload.profile?.profileCompletion ?? 0;
+        const hasCv = (payload.documents ?? []).some((document) => document.type === "CV");
+
+        if (active) {
+          setApplicationReadiness({
+            profileCompletion,
+            hasCv,
+            canApply: hasCv && profileCompletion >= 50,
+          });
+        }
+      } catch {
+        if (active) {
+          setApplicationReadiness({
+            profileCompletion: 0,
+            hasCv: false,
+            canApply: false,
+          });
+        }
+      } finally {
+        if (active) {
+          setIsReadinessLoading(false);
+        }
+      }
+    };
+
+    void loadApplicationReadiness();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handleRefresh = () => {

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -8,9 +9,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { serviceBlocks } from "@/lib/mock-data";
 
 const highlights = [
@@ -58,11 +60,14 @@ const advantages = [
 export default function HomePage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
-      <section className="grid gap-8 rounded-[2rem] border border-border/70 bg-card/90 p-8 text-card-foreground shadow-sm lg:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid gap-8 rounded-[2rem] border border-border/70 bg-card/90 p-8 text-card-foreground shadow-[0_20px_56px_rgba(33,29,8,0.08)] lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
-          <Badge variant="secondary" className="w-fit">Plataforma de empleo y talento humano</Badge>
+          <BrandLogo />
+          <Badge variant="secondary" className="w-fit border-primary/20 bg-primary/15 text-foreground">
+            Plataforma de empleo y talento humano
+          </Badge>
           <div className="space-y-4">
-            <h2 className="max-w-2xl font-[family-name:var(--font-merriweather)] text-4xl leading-tight text-foreground lg:text-5xl">
+            <h2 className="max-w-2xl text-4xl font-semibold leading-tight text-foreground lg:text-5xl">
               AIDLABORAL S.A.S. conecta empresas con talento listo para avanzar.
             </h2>
             <p className="max-w-2xl text-lg text-muted-foreground">
@@ -87,14 +92,34 @@ export default function HomePage() {
         </div>
 
         <div className="grid gap-4">
+          <Card className="border-primary/20 bg-[linear-gradient(135deg,rgba(255,215,0,0.18),rgba(255,255,255,0.96))] shadow-[0_18px_40px_rgba(255,215,0,0.18)]">
+            <CardContent className="flex items-center justify-between gap-6 p-6">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Identidad corporativa</p>
+                <h3 className="text-2xl font-semibold text-foreground">Presencia premium y cercana</h3>
+                <p className="text-sm text-muted-foreground">
+                  Una interfaz pensada para transmitir confianza, claridad operativa y valor empresarial.
+                </p>
+              </div>
+              <div className="hidden overflow-hidden rounded-[1.5rem] border border-border/70 bg-card shadow-sm sm:block">
+                <Image
+                  src="/logo-aidlaboral.jpeg"
+                  alt="Logo AIDLABORAL S.A.S."
+                  width={144}
+                  height={144}
+                  className="h-36 w-36 object-cover"
+                />
+              </div>
+            </CardContent>
+          </Card>
           {highlights.map(({ title, description, icon: Icon }) => {
             const isCandidateCard = title === "Candidatos";
             const isCompanyCard = title === "Empresas";
             const isAdminCard = title === "Administracion";
             const cardContent = (
-              <Card className="border-border/70 bg-gradient-to-br from-card via-card to-secondary/35 text-card-foreground">
+              <Card className="border-border/70 bg-gradient-to-br from-card via-card to-secondary/65 text-card-foreground shadow-[0_12px_30px_rgba(33,29,8,0.05)]">
                 <CardHeader className="flex-row items-center gap-4 space-y-0">
-                  <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                  <div className="rounded-2xl bg-primary/15 p-3 text-foreground">
                     <Icon className="size-6" />
                   </div>
                   <div className="flex-1">
@@ -147,7 +172,7 @@ export default function HomePage() {
       </section>
 
       <section id="quienes-somos" className="mt-12 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-        <Card className="border-border/70 bg-card/90 text-card-foreground">
+        <Card className="border-border/70 bg-card/90 text-card-foreground shadow-[0_16px_36px_rgba(33,29,8,0.05)]">
           <CardHeader>
             <CardTitle>Quienes somos</CardTitle>
             <CardDescription>
@@ -164,7 +189,7 @@ export default function HomePage() {
 
         <Card
           id="objetivos"
-          className="border-border/70 bg-gradient-to-br from-card via-card to-accent/15 text-card-foreground"
+          className="border-border/70 bg-gradient-to-br from-card via-card to-accent/30 text-card-foreground shadow-[0_16px_36px_rgba(33,29,8,0.05)]"
         >
           <CardHeader>
             <CardTitle>Objetivos</CardTitle>
@@ -183,7 +208,7 @@ export default function HomePage() {
       </section>
 
       <section className="mt-12 grid gap-6 lg:grid-cols-2">
-        <Card id="ciudadania" className="border-border/70 bg-card/90 text-card-foreground">
+        <Card id="ciudadania" className="border-border/70 bg-card/90 text-card-foreground shadow-[0_16px_36px_rgba(33,29,8,0.05)]">
           <CardHeader>
             <CardTitle>Servicios a la ciudadania</CardTitle>
           </CardHeader>
@@ -196,7 +221,7 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        <Card id="empleadores" className="border-border/70 bg-card/90 text-card-foreground">
+        <Card id="empleadores" className="border-border/70 bg-card/90 text-card-foreground shadow-[0_16px_36px_rgba(33,29,8,0.05)]">
           <CardHeader>
             <CardTitle>Servicios para empleadores</CardTitle>
           </CardHeader>
@@ -217,9 +242,9 @@ export default function HomePage() {
         </div>
         <div className="grid gap-6 lg:grid-cols-3">
           {advantages.map(({ title, description, icon: Icon }) => (
-            <Card key={title} className="border-border/70 bg-card/90 text-card-foreground">
+            <Card key={title} className="border-border/70 bg-card/90 text-card-foreground shadow-[0_16px_36px_rgba(33,29,8,0.05)]">
               <CardHeader>
-                <div className="mb-3 w-fit rounded-2xl bg-primary/10 p-3 text-primary">
+                <div className="mb-3 w-fit rounded-2xl bg-primary/15 p-3 text-foreground">
                   <Icon className="size-6" />
                 </div>
                 <CardTitle className="text-xl">{title}</CardTitle>
@@ -231,7 +256,7 @@ export default function HomePage() {
       </section>
 
       <section id="contacto" className="mt-12">
-        <Card className="border-border/70 bg-gradient-to-br from-card via-card to-accent/20 text-card-foreground">
+        <Card className="border-border/70 bg-gradient-to-br from-card via-card to-accent/35 text-card-foreground shadow-[0_18px_40px_rgba(33,29,8,0.06)]">
           <CardHeader>
             <CardTitle>Contactanos</CardTitle>
             <CardDescription>

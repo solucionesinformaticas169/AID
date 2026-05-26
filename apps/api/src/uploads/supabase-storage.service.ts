@@ -23,6 +23,7 @@ const ALLOWED_TYPES: Record<
   CV: {
     mimeTypes: ["application/pdf"],
     extensions: [".pdf"],
+    maxSizeMb: 2,
   },
   CERTIFICATE: {
     mimeTypes: ["application/pdf", "image/png", "image/jpeg"],
@@ -158,7 +159,8 @@ export class SupabaseStorageService {
     }
 
     const extension = path.extname(file.originalname).toLowerCase();
-    const maxBytes = this.maxUploadMb * 1024 * 1024;
+    const effectiveMaxSizeMb = rules.maxSizeMb ?? this.maxUploadMb;
+    const maxBytes = effectiveMaxSizeMb * 1024 * 1024;
     const detectedMimeType = this.detectMimeType(file.buffer);
     const safeOriginalName = path.basename(file.originalname);
 
@@ -188,7 +190,7 @@ export class SupabaseStorageService {
 
     if (file.size > maxBytes) {
       throw new BadRequestException(
-        `El archivo supera el tamano maximo permitido de ${this.maxUploadMb} MB.`,
+        `El archivo supera el tamano maximo permitido de ${effectiveMaxSizeMb} MB.`,
       );
     }
   }

@@ -6,6 +6,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CreateCheckoutDto } from "./dto/create-checkout.dto";
+import { ConfirmPayphoneButtonDto } from "./dto/confirm-payphone-button.dto";
 import { ConfirmPaymentDto } from "./dto/confirm-payment.dto";
 import { PaymentsService } from "./payments.service";
 import { PaymentsWebhooksService } from "./payments-webhooks.service";
@@ -57,6 +58,15 @@ export class PaymentsController {
   @Post("confirm")
   confirmPayment(@Body() payload: ConfirmPaymentDto) {
     return this.paymentsService.confirmPayment(payload);
+  }
+
+  @Roles(ROLE_CODES.COMPANY_ADMIN, ROLE_CODES.RECRUITER, ROLE_CODES.SYSTEM_ADMIN)
+  @Post("payphone/button/confirm")
+  confirmPayphoneButtonPayment(
+    @CurrentUser() user: { sub: string; email: string; role: string; companyId?: string | null },
+    @Body() payload: ConfirmPayphoneButtonDto,
+  ) {
+    return this.paymentsService.confirmPayphoneButtonPayment(user, payload);
   }
 
   @Roles(ROLE_CODES.COMPANY_ADMIN, ROLE_CODES.RECRUITER, ROLE_CODES.SYSTEM_ADMIN)

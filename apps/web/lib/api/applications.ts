@@ -25,6 +25,35 @@ export type CandidateApplication = {
   timelineEntries: CandidateApplicationTimelineEntry[];
 };
 
+export type CompanyApplicationStatus = {
+  status: "APPLIED" | "REVIEWING" | "SHORTLISTED" | "INTERVIEW" | "REJECTED" | "HIRED";
+  total: number;
+  averageCompatibility: number;
+};
+
+export type CompanyApplicationStatistics = {
+  totalApplications: number;
+  averageCompatibility: number;
+  byStatus: CompanyApplicationStatus[];
+  recentApplications: Array<{
+    id: string;
+    status: string;
+    compatibilityScore: number;
+    appliedAt: string;
+    candidate: {
+      id: string;
+      name: string;
+      email: string;
+    };
+    jobOffer: {
+      id: string;
+      title: string;
+      companyId: string;
+    };
+    timelineEntries: CandidateApplicationTimelineEntry[];
+  }>;
+};
+
 async function parseJsonResponse<T>(response: Response): Promise<T> {
   const payload = (await response.json()) as T & { message?: string | string[] };
 
@@ -48,3 +77,34 @@ export async function getMyApplications() {
   return parseJsonResponse<CandidateApplication[]>(response);
 }
 
+export async function getCompanyApplicationStatistics(companyId: string) {
+  const response = await fetch(`/api/applications/company/${companyId}/statistics`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<CompanyApplicationStatistics>(response);
+}
+
+export async function updateApplicationStatus(
+  applicationId: string,
+  payload: {
+    status: CompanyApplicationStatus["status"];
+    note?: string;
+  },
+) {
+  const response = await fetch(`/api/applications/${applicationId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  return parseJsonResponse<{
+    id: string;
+    status: string;
+    timelineEntries: CandidateApplicationTimelineEntry[];
+  }>(response);
+}

@@ -1,5 +1,4 @@
-import { IsOptional, IsString } from "class-validator";
-import { IsArray, IsInt, Min } from "class-validator";
+import { IsArray, IsDateString, IsInt, IsNumber, IsOptional, IsString, Min } from "class-validator";
 
 import {
   SanitizeStringArray,
@@ -66,4 +65,22 @@ export class CreateJobDto {
   @SanitizeStringArray()
   @IsString({ each: true })
   requiredCertifications?: string[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  salaryMin?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  salaryMax?: number;
+
+  @IsOptional()
+  @IsDateString()
+  publishedAt?: string;
+
+  @IsOptional()
+  @IsDateString()
+  closesAt?: string;
 }

@@ -73,14 +73,14 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 
       <div
         className={cn(
-          "fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm transition",
+          "fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/45 p-3 backdrop-blur-sm transition sm:p-4",
           modal ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
       >
         {modal ? (
-          <div className="w-full max-w-2xl rounded-[2rem] border border-border/70 bg-card p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
+          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-border/60 px-5 py-5 sm:px-6">
+              <div className="min-w-0">
                 <h3 className="text-2xl font-semibold">{modal.title}</h3>
                 {modal.description ? (
                   <p className="mt-2 text-sm text-muted-foreground">{modal.description}</p>
@@ -90,7 +90,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                 <X className="size-4" />
               </Button>
             </div>
-            <div className="mt-6">{modal.content}</div>
+            <div className="overflow-y-auto px-5 py-5 sm:px-6">{modal.content}</div>
           </div>
         ) : null}
       </div>

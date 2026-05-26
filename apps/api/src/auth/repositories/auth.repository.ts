@@ -129,9 +129,11 @@ export class AuthRepository {
     };
     company: {
       name: string;
+      commercialName?: string;
       slug: string;
       taxId: string;
-      description?: string;
+      address?: string;
+      contactPosition?: string;
       website?: string;
       industry?: string;
       city?: string;
@@ -158,9 +160,11 @@ export class AuthRepository {
             company: {
               create: {
                 name: input.company.name,
+                commercialName: input.company.commercialName,
                 slug: input.company.slug,
                 taxId: input.company.taxId,
-                description: input.company.description,
+                address: input.company.address,
+                contactPosition: input.company.contactPosition,
                 website: input.company.website,
                 industry: input.company.industry,
                 city: input.company.city,

@@ -10,6 +10,7 @@ import { readFile } from "node:fs/promises";
 import { AUDIT_ENTITY_TYPES } from "../audit/audit.constants";
 import { PlansService } from "../plans/plans.service";
 import { CreateCheckoutDto } from "./dto/create-checkout.dto";
+import { ConfirmPayphoneButtonDto } from "./dto/confirm-payphone-button.dto";
 import { ConfirmPaymentDto } from "./dto/confirm-payment.dto";
 import { StripePaymentProvider } from "./providers/stripe-payment.provider";
 import { PaypalPaymentProvider } from "./providers/paypal-payment.provider";
@@ -19,6 +20,7 @@ import type { PaymentCheckoutResult } from "./types/payment.types";
 import type { AuthenticatedUser } from "../common/decorators/current-user.decorator";
 import { ROLE_CODES } from "../common/constants/role-codes";
 import { AppLoggerService } from "../observability/app-logger.service";
+import { PaymentsWebhooksService } from "./payments-webhooks.service";
 
 @Injectable()
 export class PaymentsService {
@@ -28,6 +30,7 @@ export class PaymentsService {
     private readonly stripePaymentProvider: StripePaymentProvider,
     private readonly paypalPaymentProvider: PaypalPaymentProvider,
     private readonly payphonePaymentProvider: PayphonePaymentProvider,
+    private readonly paymentsWebhooksService: PaymentsWebhooksService,
     private readonly logger: AppLoggerService,
   ) {}
 
@@ -69,17 +72,38 @@ export class PaymentsService {
     }
 
     const plan = await this.plansService.getPlanByCode(payload.planCode);
+    const billingSnapshot = {
+      firstName: payload.billingFirstName?.trim() || null,
+      lastName: payload.billingLastName?.trim() || null,
+      companyName: payload.billingCompanyName?.trim() || null,
+      email: payload.customerEmail?.trim() || company.billingEmail || null,
+      contactPhone: payload.billingContactPhone?.trim() || null,
+      taxId: payload.billingTaxId?.trim() || null,
+      address: payload.billingAddress?.trim() || null,
+      city: payload.billingCity?.trim() || null,
+      country: payload.billingCountry?.trim() || null,
+      payphoneCountryCode: payload.payerCountryCode?.trim() || null,
+      payphonePhoneNumber: payload.payerPhoneNumber?.trim() || null,
+    };
     const checkoutInput = {
       companyId: company.id,
       planCode: payload.planCode,
       planName: plan.name,
       amount: Number(plan.price),
       currency: plan.currency,
-      successUrl: payload.successUrl ?? "http://localhost:3000/empresa?billing=success",
+      successUrl: payload.successUrl ?? "http://localhost:3000/empresa?billing=payphone-return",
       cancelUrl: payload.cancelUrl ?? "http://localhost:3000/empresa?billing=cancel",
       customerEmail: payload.customerEmail ?? company.billingEmail ?? undefined,
       payerPhoneNumber: payload.payerPhoneNumber,
       payerCountryCode: payload.payerCountryCode,
+      billingFirstName: payload.billingFirstName,
+      billingLastName: payload.billingLastName,
+      billingCompanyName: payload.billingCompanyName,
+      billingContactPhone: payload.billingContactPhone,
+      billingTaxId: payload.billingTaxId,
+      billingAddress: payload.billingAddress,
+      billingCity: payload.billingCity,
+      billingCountry: payload.billingCountry,
     } as const;
 
     const providerResult = await this.runProviderCheckout(payload.provider, checkoutInput);
@@ -104,6 +128,7 @@ export class PaymentsService {
         featuredCandidates: plan.featuredCandidates,
       },
       invoiceNumber,
+      billingSnapshot,
     });
     this.logger.info("Payment checkout created", {
       context: PaymentsService.name,
@@ -132,6 +157,42 @@ export class PaymentsService {
     throw new ForbiddenException(
       "La confirmacion manual de pagos desde frontend esta deshabilitada. Usa webhooks firmados del proveedor.",
     );
+  }
+
+  async confirmPayphoneButtonPayment(
+    user: AuthenticatedUser,
+    payload: ConfirmPayphoneButtonDto,
+  ) {
+    const confirmation = await this.payphonePaymentProvider.confirmButtonTransaction(
+      payload.id,
+      payload.clientTransactionId,
+    );
+
+    const subscription = await this.paymentsRepository.findSubscriptionByExternalReference(
+      PaymentProvider.PAYPHONE,
+      payload.clientTransactionId,
+    );
+
+    if (!subscription) {
+      throw new NotFoundException(
+        `No existe una suscripcion local para la transaccion ${payload.clientTransactionId}.`,
+      );
+    }
+
+    await this.assertCompanyBillingAccess(user, subscription.company.id);
+
+    const result = await this.paymentsWebhooksService.reconcilePayphoneButtonConfirmation(
+      confirmation,
+    );
+
+    return {
+      message:
+        result.status === "processed"
+          ? "Pago PayPhone confirmado y plan activado correctamente."
+          : result.message,
+      result,
+      confirmation,
+    };
   }
 
   async getInvoicePdf(user: AuthenticatedUser, invoiceId: string) {

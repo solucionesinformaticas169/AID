@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { BriefcaseBusiness, ChevronDown, Menu } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { siteMenu } from "@/lib/mock-data";
@@ -12,7 +13,10 @@ import { siteMenu } from "@/lib/mock-data";
 export function Header() {
   const pathname = usePathname();
   const [isAboutMenuOpen, setIsAboutMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileAboutMenuOpen, setIsMobileAboutMenuOpen] = useState(false);
   const aboutMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
   const isPrivateRoute =
     pathname.startsWith("/candidato") ||
     pathname.startsWith("/empresa") ||
@@ -23,11 +27,18 @@ export function Header() {
       if (!aboutMenuRef.current?.contains(event.target as Node)) {
         setIsAboutMenuOpen(false);
       }
+
+      if (!mobileMenuRef.current?.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false);
+        setIsMobileAboutMenuOpen(false);
+      }
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsAboutMenuOpen(false);
+        setIsMobileMenuOpen(false);
+        setIsMobileAboutMenuOpen(false);
       }
     }
 
@@ -40,6 +51,12 @@ export function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    setIsAboutMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    setIsMobileAboutMenuOpen(false);
+  }, [pathname]);
+
   if (isPrivateRoute) {
     return null;
   }
@@ -47,15 +64,9 @@ export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-2xl border border-border/70 bg-card/80 p-3 text-primary shadow-sm">
-            <BriefcaseBusiness className="size-5" />
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">AIDLABORAL</p>
-            <h1 className="text-lg font-semibold text-foreground">ATS corporativo para talento humano</h1>
-          </div>
-        </div>
+        <Link href="/" className="transition hover:opacity-95">
+          <BrandLogo compact />
+        </Link>
         <nav className="hidden flex-wrap justify-end gap-2 xl:flex">
           <Button asChild variant="ghost" size="sm">
             <Link href="/">Home</Link>
@@ -101,10 +112,76 @@ export function Header() {
             <Link href="/login">Login</Link>
           </Button>
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" ref={mobileMenuRef}>
           <ThemeToggle />
-          <div className="flex items-center gap-2 xl:hidden">
-            <Menu className="size-4 text-muted-foreground" />
+          <div className="relative xl:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 w-10 p-0"
+              aria-label={isMobileMenuOpen ? "Cerrar menu" : "Abrir menu"}
+              aria-expanded={isMobileMenuOpen}
+              onClick={() => setIsMobileMenuOpen((current) => !current)}
+            >
+              {isMobileMenuOpen ? (
+                <X className="size-4" />
+              ) : (
+                <Menu className="size-4" />
+              )}
+            </Button>
+
+            {isMobileMenuOpen ? (
+              <div className="absolute right-0 top-14 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-border/70 bg-card/95 p-4 shadow-xl backdrop-blur">
+                <div className="grid gap-2">
+                  <Button asChild variant="ghost" className="justify-start">
+                    <Link href="/">Home</Link>
+                  </Button>
+
+                  <div className="rounded-2xl border border-border/70 bg-background/50 p-2">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => setIsMobileAboutMenuOpen((current) => !current)}
+                      aria-expanded={isMobileAboutMenuOpen}
+                    >
+                      <span>Nosotros</span>
+                      <ChevronDown
+                        className={`size-4 transition ${isMobileAboutMenuOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+
+                    {isMobileAboutMenuOpen ? (
+                      <div className="mt-2 grid gap-1">
+                        {siteMenu.map((siteItem) => (
+                          <Link
+                            key={siteItem.href}
+                            href={siteItem.href}
+                            className="rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-accent hover:text-accent-foreground"
+                            onClick={() => {
+                              setIsMobileMenuOpen(false);
+                              setIsMobileAboutMenuOpen(false);
+                            }}
+                          >
+                            {siteItem.label}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <Button asChild variant="ghost" className="justify-start">
+                    <Link href="/#contacto">Contactanos</Link>
+                  </Button>
+                  <Button asChild variant="ghost" className="justify-start">
+                    <Link href="/registro">Registro</Link>
+                  </Button>
+                  <Button asChild className="justify-start">
+                    <Link href="/login">Login</Link>
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

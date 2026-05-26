@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { AuditAction, PaymentStatus, SubscriptionStatus } from "@prisma/client";
+import { AuditAction, PaymentStatus, PlanCode, SubscriptionStatus } from "@prisma/client";
 
 import { PrismaService } from "../../prisma/prisma.service";
 
@@ -109,6 +109,11 @@ export class AdminRepository {
       }),
       this.prisma.company.findMany({
         include: {
+          subscriptions: {
+            include: {
+              plan: true,
+            },
+          },
           _count: {
             select: {
               companyUsers: true,
@@ -259,17 +264,39 @@ export class AdminRepository {
         emailVerifiedAt: user.emailVerifiedAt,
         createdAt: user.createdAt,
       })),
-      companies: companies.map((company) => ({
-        id: company.id,
-        name: company.name,
-        status: company.status,
-        city: company.city,
-        country: company.country,
-        users: company._count.companyUsers,
-        jobs: company._count.jobOffers,
-        subscriptions: company._count.subscriptions,
-        createdAt: company.createdAt,
-      })),
+      companies: companies.map((company) => {
+        const activeSubscription = this.findActiveSubscription(company.subscriptions);
+        const freePostsRemaining = Math.max(
+          0,
+          company.freeJobPostsIncluded - company.freeJobPostsUsed,
+        );
+
+        return {
+          id: company.id,
+          name: company.name,
+          commercialName: company.commercialName,
+          taxId: company.taxId,
+          address: company.address,
+          contactPosition: company.contactPosition,
+          billingEmail: company.billingEmail,
+          industry: company.industry,
+          status: company.status,
+          operationalStatus: this.getOperationalCompanyStatus({
+            moderationStatus: company.status,
+            hasActiveSubscription: Boolean(activeSubscription),
+            freePostsRemaining,
+          }),
+          city: company.city,
+          country: company.country,
+          users: company._count.companyUsers,
+          jobs: company._count.jobOffers,
+          subscriptions: company._count.subscriptions,
+          freePostsRemaining,
+          activePlanName: activeSubscription?.plan.name ?? this.getFallbackPlanName(),
+          hasActiveSubscription: Boolean(activeSubscription),
+          createdAt: company.createdAt,
+        };
+      }),
       jobs: jobs.map((job) => ({
         id: job.id,
         title: job.title,
@@ -370,5 +397,56 @@ export class AdminRepository {
           (process.env.ENABLE_SECURITY_HEADERS ?? "true").toLowerCase() !== "false",
       },
     };
+  }
+
+  private getFallbackPlanName() {
+    return "Gratis";
+  }
+
+  private getOperationalCompanyStatus(input: {
+    moderationStatus: string;
+    hasActiveSubscription: boolean;
+    freePostsRemaining: number;
+  }) {
+    if (input.moderationStatus === "REJECTED") {
+      return "RECHAZADA";
+    }
+
+    if (input.hasActiveSubscription) {
+      return "PLAN_ACTIVO";
+    }
+
+    if (input.freePostsRemaining > 0) {
+      return "ACTIVA";
+    }
+
+    return "SIN_CARGAS";
+  }
+
+  private findActiveSubscription(
+    subscriptions: Array<{
+      id: string;
+      status: SubscriptionStatus;
+      startsAt: Date;
+      endsAt: Date | null;
+      plan: {
+        code: PlanCode;
+        name: string;
+      };
+    }>,
+  ) {
+    const now = new Date();
+
+    return (
+      subscriptions.find((subscription) => {
+        const isAllowedStatus =
+          subscription.status === SubscriptionStatus.ACTIVE ||
+          subscription.status === SubscriptionStatus.TRIALING;
+        const isStarted = subscription.startsAt <= now;
+        const isNotExpired = !subscription.endsAt || subscription.endsAt >= now;
+
+        return isAllowedStatus && isStarted && isNotExpired;
+      }) ?? null
+    );
   }
 }

@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
-import { Activity, CircleGauge, PanelTop, Sparkles } from "lucide-react";
+import { PanelTop } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SidebarShellProps {
   title: string;
@@ -25,21 +24,6 @@ export function SidebarShell({ title, description, children }: SidebarShellProps
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
-          {[
-            { icon: <CircleGauge className="size-4" />, label: "Vista ejecutiva", helper: "Metricas, filtros y tablas con foco en productividad." },
-            { icon: <Activity className="size-4" />, label: "Estados UX", helper: "Loading, vacios, skeletons y feedback visual consistente." },
-            { icon: <Sparkles className="size-4" />, label: "Design system", helper: "Cards modulares, modales y toasts listos para escalar." },
-          ].map((item) => (
-            <div key={item.label} className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
-              <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-                <span className={cn("text-primary")}>{item.icon}</span>
-                {item.label}
-              </div>
-              <p className="text-sm text-muted-foreground">{item.helper}</p>
-            </div>
-          ))}
-        </CardContent>
       </Card>
       <section>{children}</section>
     </main>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,8 +55,9 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex max-w-xl px-6 py-14">
-      <Card className="w-full border-border/70 bg-card/90 text-card-foreground">
+      <Card className="w-full border-border/70 bg-card/95 text-card-foreground shadow-[0_20px_56px_rgba(33,29,8,0.08)]">
         <CardHeader>
+          <BrandLogo compact className="mb-3" />
           <CardTitle>Ingreso a la plataforma</CardTitle>
           <p className="text-sm text-muted-foreground">
             Autenticacion conectada al backend con JWT y cookies seguras.

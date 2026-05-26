@@ -60,6 +60,18 @@ export class UploadsRepository {
     });
   }
 
+  findDocumentByUserAndType(userId: string, documentType: DocumentType) {
+    return this.prisma.candidateDocument.findFirst({
+      where: {
+        userId,
+        type: documentType,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
   findDocumentWithAccessGraph(documentId: string) {
     return this.prisma.candidateDocument.findUnique({
       where: { id: documentId },

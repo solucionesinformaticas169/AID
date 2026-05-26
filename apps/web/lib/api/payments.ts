@@ -117,6 +117,11 @@ export type CheckoutResponse = {
   plan: PersistedPlan;
 };
 
+export type ConfirmPayphoneButtonPayload = {
+  id: number;
+  clientTransactionId: string;
+};
+
 export type CheckoutPayload = {
   companyId: string;
   planCode: "FREE" | "PROFESSIONAL" | "ENTERPRISE";
@@ -124,6 +129,14 @@ export type CheckoutPayload = {
   customerEmail?: string;
   payerPhoneNumber?: string;
   payerCountryCode?: string;
+  billingFirstName?: string;
+  billingLastName?: string;
+  billingCompanyName?: string;
+  billingContactPhone?: string;
+  billingTaxId?: string;
+  billingAddress?: string;
+  billingCity?: string;
+  billingCountry?: string;
   successUrl?: string;
   cancelUrl?: string;
 };
@@ -200,6 +213,21 @@ export function getPlans() {
 
 export function createCheckout(payload: CheckoutPayload) {
   return request<CheckoutResponse>("/checkout", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, {
+    proxy: "billing",
+  });
+}
+
+export function confirmPayphoneButtonPayment(payload: ConfirmPayphoneButtonPayload) {
+  return request<{
+    message: string;
+    result: {
+      status: "processed" | "duplicate" | "ignored";
+      message: string;
+    };
+  }>("/payphone/button/confirm", {
     method: "POST",
     body: JSON.stringify(payload),
   }, {

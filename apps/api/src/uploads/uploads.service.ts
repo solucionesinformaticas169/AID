@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -7,6 +8,7 @@ import { DocumentType } from "@prisma/client";
 
 import { AuditService } from "../audit/audit.service";
 import { AUDIT_ENTITY_TYPES } from "../audit/audit.constants";
+import { CandidateService } from "../candidate/candidate.service";
 import { ROLE_CODES } from "../common/constants/role-codes";
 import type { AuthenticatedUser } from "../common/decorators/current-user.decorator";
 import { AppLoggerService } from "../observability/app-logger.service";
@@ -19,6 +21,7 @@ export class UploadsService {
   constructor(
     private readonly uploadsRepository: UploadsRepository,
     private readonly storageService: SupabaseStorageService,
+    private readonly candidateService: CandidateService,
     private readonly auditService: AuditService,
     private readonly logger: AppLoggerService,
   ) {}
@@ -31,6 +34,19 @@ export class UploadsService {
     },
   ) {
     this.assertCandidate(user);
+
+    if (input.documentType === DocumentType.CV) {
+      const existingCv = await this.uploadsRepository.findDocumentByUserAndType(
+        user.sub,
+        DocumentType.CV,
+      );
+
+      if (existingCv) {
+        throw new BadRequestException(
+          "Solo puedes tener una hoja de vida cargada. Elimina la actual antes de subir una nueva.",
+        );
+      }
+    }
 
     const effectiveCandidateProfile = await this.uploadsRepository.ensureCandidateProfileForUser(user.sub);
 
@@ -72,6 +88,7 @@ export class UploadsService {
       documentType: input.documentType,
       size: upload.size,
     });
+    await this.candidateService.refreshProfileCompletion(user.sub);
 
     return {
       message: "Documento cargado correctamente.",
@@ -139,6 +156,7 @@ export class UploadsService {
       entityId: document.id,
       documentType: document.type,
     });
+    await this.candidateService.refreshProfileCompletion(user.sub);
 
     return {
       message: "Documento eliminado correctamente.",

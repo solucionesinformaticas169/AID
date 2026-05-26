@@ -56,6 +56,7 @@ export class ApplicationsRepository {
     return this.prisma.candidateProfile.findUnique({
       where: { id: candidateProfileId },
       include: {
+        documents: true,
         educationRecords: true,
         workExperiences: true,
         certifications: true,
@@ -69,6 +70,7 @@ export class ApplicationsRepository {
     return this.prisma.candidateProfile.findUnique({
       where: { userId },
       include: {
+        documents: true,
         educationRecords: true,
         workExperiences: true,
         certifications: true,
@@ -112,7 +114,7 @@ export class ApplicationsRepository {
         timelineEntries: {
           create: {
             status: JobApplicationStatus.APPLIED,
-            title: "Aplicada",
+            title: "Enviado",
             description: "La postulacion fue registrada correctamente.",
           },
         },
@@ -176,8 +178,17 @@ export class ApplicationsRepository {
         },
       },
       include: {
-        candidateProfile: true,
+        candidateProfile: {
+          include: {
+            user: true,
+          },
+        },
         jobOffer: true,
+        timelineEntries: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
       },
       orderBy: {
         appliedAt: "desc",
@@ -201,7 +212,7 @@ export class ApplicationsRepository {
 
   private getTimelineTitle(status: JobApplicationStatus) {
     const titles: Record<JobApplicationStatus, string> = {
-      APPLIED: "Aplicada",
+      APPLIED: "Enviado",
       REVIEWING: "En revision",
       SHORTLISTED: "Preseleccionado",
       INTERVIEW: "Entrevista",

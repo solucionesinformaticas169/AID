@@ -276,6 +276,7 @@ model CandidateProfile {
   city               String?
   country            String?
   birthDate          DateTime?
+  personalInfo       Json?
   summary            String?
   desiredSalary      Decimal?            @db.Decimal(12, 2)
   linkedinUrl        String?
@@ -316,8 +317,11 @@ model CandidateDocument {
 model Company {
   id                   String         @id @default(uuid())
   name                 String
+  commercialName       String?
   slug                 String         @unique
   taxId                String?        @unique
+  address              String?
+  contactPosition      String?
   description          String?
   website              String?
   logoPath             String?
@@ -548,9 +552,14 @@ model PaymentWebhookEvent {
 model Education {
   id                 String           @id @default(uuid())
   candidateProfileId String
+  level              String?
   institution        String
   degree             String
   fieldOfStudy       String?
+  studyTimeValue     String?
+  studyTimeUnit      String?
+  graduationYear     Int?
+  senescytNumber     String?
   startDate          DateTime?
   endDate            DateTime?
   isCurrent          Boolean          @default(false)
@@ -565,11 +574,16 @@ model WorkExperience {
   candidateProfileId String
   companyName        String
   position           String
+  department         String?
   location           String?
+  contractType       String?
+  workday            String?
   startDate          DateTime?
   endDate            DateTime?
   isCurrent          Boolean          @default(false)
   description        String?
+  achievements       String?
+  exitReason         String?
   candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
@@ -579,7 +593,9 @@ model Language {
   id                 String           @id @default(uuid())
   candidateProfileId String
   name               String
-  proficiency        String
+  proficiency        String?
+  spokenLevel        String?
+  writtenLevel       String?
   candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
@@ -592,6 +608,13 @@ model Certification {
   candidateProfileId String
   name               String
   issuer             String?
+  eventType          String?
+  studyArea          String?
+  certificationType  String?
+  startDate          DateTime?
+  endDate            DateTime?
+  totalDays          Int?
+  totalHours         Int?
   issueDate          DateTime?
   expirationDate     DateTime?
   credentialId       String?
@@ -609,6 +632,7 @@ model Reference {
   position           String?
   email              String?
   phone              String?
+  city               String?
   relationship       String?
   notes              String?
   candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)

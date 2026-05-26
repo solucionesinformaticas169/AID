@@ -49,12 +49,22 @@ export type AdminConsoleUser = {
 export type AdminConsoleCompany = {
   id: string;
   name: string;
+  commercialName: string | null;
+  taxId: string | null;
+  address: string | null;
+  contactPosition: string | null;
+  billingEmail: string | null;
+  industry: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
+  operationalStatus: "ACTIVA" | "SIN_CARGAS" | "PLAN_ACTIVO" | "RECHAZADA";
   city: string | null;
   country: string | null;
   users: number;
   jobs: number;
   subscriptions: number;
+  freePostsRemaining: number;
+  activePlanName: string;
+  hasActiveSubscription: boolean;
   createdAt: string;
 };
 

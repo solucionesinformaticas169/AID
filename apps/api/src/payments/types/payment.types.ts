@@ -26,4 +26,12 @@ export type PaymentCheckoutInput = {
   customerEmail?: string;
   payerPhoneNumber?: string;
   payerCountryCode?: string;
+  billingFirstName?: string;
+  billingLastName?: string;
+  billingCompanyName?: string;
+  billingContactPhone?: string;
+  billingTaxId?: string;
+  billingAddress?: string;
+  billingCity?: string;
+  billingCountry?: string;
 };

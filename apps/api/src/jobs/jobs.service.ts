@@ -18,6 +18,8 @@ import { EmailsService } from "../emails/emails.service";
 import { AppLoggerService } from "../observability/app-logger.service";
 import { PlansService } from "../plans/plans.service";
 import { CreateJobDto } from "./dto/create-job.dto";
+import { UpdateJobDto } from "./dto/update-job.dto";
+import { UpdateJobVisibilityDto } from "./dto/update-job-visibility.dto";
 import { JobsRepository } from "./repositories/jobs.repository";
 
 @Injectable()
@@ -32,6 +34,18 @@ export class JobsService {
 
   getPublicJobs() {
     return this.jobsRepository.findPublicJobs();
+  }
+
+  async getCompanyJobs(user: AuthenticatedUser, companyId: string) {
+    if (user.role !== ROLE_CODES.SYSTEM_ADMIN) {
+      const hasMembership = await this.jobsRepository.userHasCompanyAccess(user.sub, companyId);
+
+      if (!hasMembership || user.companyId !== companyId) {
+        throw new ForbiddenException("No tienes acceso a vacantes de otra empresa.");
+      }
+    }
+
+    return this.jobsRepository.findByCompanyId(companyId);
   }
 
   async getModerationQueue() {
@@ -87,6 +101,8 @@ export class JobsService {
     const slug = await this.generateUniqueSlug(payload.title);
     const shouldPublishImmediately = user.role === ROLE_CODES.SYSTEM_ADMIN;
     const initialStatus = shouldPublishImmediately ? JobOfferStatus.PUBLISHED : JobOfferStatus.DRAFT;
+    const availability = this.resolveAvailability(payload.publishedAt, payload.closesAt);
+    const salary = this.resolveSalaryRange(payload.salaryMin, payload.salaryMax);
 
     if (freePublication) {
       await this.jobsRepository.incrementFreePostsUsed(effectiveCompanyId);
@@ -100,7 +116,12 @@ export class JobsService {
       freePublication,
       priorityPublication: planStatus.priorityPublication,
       status: initialStatus,
-      publishedAt: shouldPublishImmediately ? new Date() : null,
+      publishedAt: shouldPublishImmediately
+        ? availability.publishedAt ?? new Date()
+        : availability.publishedAt,
+      closesAt: availability.closesAt,
+      salaryMin: salary.salaryMin,
+      salaryMax: salary.salaryMax,
     });
     await this.auditService.record({
       action: "JOB_CREATED",
@@ -144,6 +165,122 @@ export class JobsService {
         : "Vacante creada y enviada a moderacion administrativa.",
       job,
       planStatus: await this.plansService.getCompanyPlanStatus(effectiveCompanyId),
+    };
+  }
+
+  async updateJob(user: AuthenticatedUser, jobId: string, payload: UpdateJobDto) {
+    const existingJob = await this.jobsRepository.findById(jobId);
+
+    if (!existingJob) {
+      throw new NotFoundException(`Vacante ${jobId} no encontrada.`);
+    }
+
+    if (user.role !== ROLE_CODES.SYSTEM_ADMIN) {
+      const hasMembership = await this.jobsRepository.userHasCompanyAccess(
+        user.sub,
+        existingJob.companyId,
+      );
+
+      if (!hasMembership || user.companyId !== existingJob.companyId) {
+        throw new ForbiddenException("No puedes editar vacantes de otra empresa.");
+      }
+    }
+
+    if (!payload.title && !payload.description && Object.keys(payload).length === 0) {
+      throw new BadRequestException("Debes enviar al menos un cambio para actualizar la vacante.");
+    }
+
+    const availability = this.resolveAvailability(
+      payload.publishedAt ?? existingJob.publishedAt?.toISOString(),
+      payload.closesAt ?? existingJob.closesAt?.toISOString(),
+    );
+    const salary = this.resolveSalaryRange(
+      payload.salaryMin ?? this.toNullableNumber(existingJob.salaryMin),
+      payload.salaryMax ?? this.toNullableNumber(existingJob.salaryMax),
+    );
+
+    const updatedJob = await this.jobsRepository.updateJob(jobId, {
+      ...payload,
+      publishedAt: availability.publishedAt,
+      closesAt: availability.closesAt,
+      salaryMin: salary.salaryMin,
+      salaryMax: salary.salaryMax,
+    });
+
+    this.logger.info("Job updated successfully", {
+      context: JobsService.name,
+      event: "JOB_UPDATED",
+      action: "JOB_UPDATED",
+      userId: user.sub,
+      entityType: AUDIT_ENTITY_TYPES.JOB_OFFER,
+      entityId: updatedJob.id,
+      companyId: existingJob.companyId,
+    });
+
+    return {
+      message: "Vacante actualizada correctamente.",
+      job: updatedJob,
+    };
+  }
+
+  async updateJobVisibility(
+    user: AuthenticatedUser,
+    jobId: string,
+    payload: UpdateJobVisibilityDto,
+  ) {
+    const existingJob = await this.jobsRepository.findById(jobId);
+
+    if (!existingJob) {
+      throw new NotFoundException(`Vacante ${jobId} no encontrada.`);
+    }
+
+    if (user.role !== ROLE_CODES.SYSTEM_ADMIN) {
+      const hasMembership = await this.jobsRepository.userHasCompanyAccess(
+        user.sub,
+        existingJob.companyId,
+      );
+
+      if (!hasMembership || user.companyId !== existingJob.companyId) {
+        throw new ForbiddenException("No puedes cambiar el estado de vacantes de otra empresa.");
+      }
+    }
+
+    const nextStatus = payload.isActive ? JobOfferStatus.PUBLISHED : JobOfferStatus.PAUSED;
+    const publishedAt =
+      nextStatus === JobOfferStatus.PUBLISHED
+        ? existingJob.publishedAt ?? new Date()
+        : existingJob.publishedAt;
+
+    if (
+      nextStatus === JobOfferStatus.PUBLISHED &&
+      existingJob.closesAt &&
+      existingJob.closesAt.getTime() < Date.now()
+    ) {
+      throw new BadRequestException(
+        "La fecha de cierre ya expiro. Actualiza la disponibilidad antes de activar la vacante.",
+      );
+    }
+
+    const updatedJob = await this.jobsRepository.updateStatus(jobId, nextStatus, publishedAt);
+
+    this.logger.info("Job visibility updated successfully", {
+      context: JobsService.name,
+      event: "JOB_VISIBILITY_UPDATED",
+      action: "JOB_VISIBILITY_UPDATED",
+      userId: user.sub,
+      entityType: AUDIT_ENTITY_TYPES.JOB_OFFER,
+      entityId: updatedJob.id,
+      companyId: existingJob.companyId,
+      previousStatus: existingJob.status,
+      nextStatus,
+    });
+
+    return {
+      message:
+        nextStatus === JobOfferStatus.PUBLISHED
+          ? "Vacante activada correctamente."
+          : "Vacante desactivada correctamente.",
+      job: updatedJob,
     };
   }
 
@@ -237,6 +374,59 @@ export class JobsService {
     }
 
     return "Revision de contenido";
+  }
+
+  private resolveSalaryRange(salaryMin?: number | null, salaryMax?: number | null) {
+    const normalizedMin = salaryMin ?? null;
+    const normalizedMax = salaryMax ?? null;
+
+    if (
+      normalizedMin !== null &&
+      normalizedMax !== null &&
+      normalizedMax < normalizedMin
+    ) {
+      throw new BadRequestException(
+        "La remuneracion maxima no puede ser menor a la remuneracion minima.",
+      );
+    }
+
+    return {
+      salaryMin: normalizedMin,
+      salaryMax: normalizedMax,
+    };
+  }
+
+  private resolveAvailability(publishedAt?: string | null, closesAt?: string | null) {
+    const startDate = publishedAt ? new Date(publishedAt) : null;
+    const endDate = closesAt ? new Date(closesAt) : null;
+
+    if (startDate && Number.isNaN(startDate.getTime())) {
+      throw new BadRequestException("La fecha de inicio de publicacion no es valida.");
+    }
+
+    if (endDate && Number.isNaN(endDate.getTime())) {
+      throw new BadRequestException("La fecha de cierre de la vacante no es valida.");
+    }
+
+    if (startDate && endDate && endDate < startDate) {
+      throw new BadRequestException(
+        "La fecha final de visibilidad no puede ser anterior a la fecha inicial.",
+      );
+    }
+
+    return {
+      publishedAt: startDate,
+      closesAt: endDate,
+    };
+  }
+
+  private toNullableNumber(value: unknown) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
   }
 
   private notifyCompanyJobPublished(job: {
