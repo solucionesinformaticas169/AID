@@ -128,42 +128,55 @@ export class ApplicationsService {
       languagesRequirementMet &&
       certificationsRequirementMet;
 
-    const application = await this.applicationsRepository.create({
-      jobOfferId: payload.jobOfferId,
-      candidateProfileId: candidateProfile.id,
-      userId: user.sub,
-      coverLetter: payload.coverLetter,
-      selectedEducationIds: payload.selectedEducationIds,
-      selectedWorkExperienceIds: payload.selectedWorkExperienceIds,
-      selectedCertificationIds: payload.selectedCertificationIds,
-      calculatedYearsExperience: new Prisma.Decimal(calculatedYearsExperience.toFixed(2)),
-      meetsRequirements,
-      compatibilityScore,
-      compatibilityReport: {
-        education: {
-          requiredLevel: jobOffer.requiredEducationLevel,
-          matched: educationRequirementMet,
-          selectedEducationIds: payload.selectedEducationIds,
+    let application;
+
+    try {
+      application = await this.applicationsRepository.create({
+        jobOfferId: payload.jobOfferId,
+        candidateProfileId: candidateProfile.id,
+        userId: user.sub,
+        coverLetter: payload.coverLetter,
+        selectedEducationIds: payload.selectedEducationIds,
+        selectedWorkExperienceIds: payload.selectedWorkExperienceIds,
+        selectedCertificationIds: payload.selectedCertificationIds,
+        calculatedYearsExperience: new Prisma.Decimal(calculatedYearsExperience.toFixed(2)),
+        meetsRequirements,
+        compatibilityScore,
+        compatibilityReport: {
+          education: {
+            requiredLevel: jobOffer.requiredEducationLevel,
+            matched: educationRequirementMet,
+            selectedEducationIds: payload.selectedEducationIds,
+          },
+          experience: {
+            requiredYears: jobOffer.minimumYearsExperience ?? 0,
+            calculatedYearsExperience,
+            matched: experienceRequirementMet,
+            selectedWorkExperienceIds: payload.selectedWorkExperienceIds,
+          },
+          languages: {
+            required: requiredLanguages,
+            matched: matchedLanguages,
+            matchedAll: languagesRequirementMet,
+          },
+          certifications: {
+            required: requiredCertifications,
+            matched: matchedCertifications,
+            matchedAll: certificationsRequirementMet,
+            selectedCertificationIds: payload.selectedCertificationIds,
+          },
         },
-        experience: {
-          requiredYears: jobOffer.minimumYearsExperience ?? 0,
-          calculatedYearsExperience,
-          matched: experienceRequirementMet,
-          selectedWorkExperienceIds: payload.selectedWorkExperienceIds,
-        },
-        languages: {
-          required: requiredLanguages,
-          matched: matchedLanguages,
-          matchedAll: languagesRequirementMet,
-        },
-        certifications: {
-          required: requiredCertifications,
-          matched: matchedCertifications,
-          matchedAll: certificationsRequirementMet,
-          selectedCertificationIds: payload.selectedCertificationIds,
-        },
-      },
-    });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new BadRequestException("Ya te postulaste a esta vacante.");
+      }
+
+      throw error;
+    }
     await this.auditService.record({
       action: "APPLICATION_CREATED",
       userId: user.sub,
@@ -282,30 +295,88 @@ export class ApplicationsService {
         totalApplications > 0 ? Math.round(weightedCompatibility / totalApplications) : 0,
       byStatus,
       recentApplications: recentApplications.map((application) => ({
-        id: application.id,
-        status: application.status,
-        compatibilityScore: application.compatibilityScore,
-        appliedAt: application.appliedAt,
-        candidate: {
-          id: application.candidateProfile.user.id,
-          name:
-            `${application.candidateProfile.user.firstName} ${application.candidateProfile.user.lastName}`.trim(),
-          email: application.candidateProfile.user.email,
-        },
-        jobOffer: {
-          id: application.jobOffer.id,
-          title: application.jobOffer.title,
-          companyId: application.jobOffer.companyId,
-        },
-        timelineEntries: application.timelineEntries.map((entry) => ({
-          id: entry.id,
-          status: entry.status,
-          title: entry.title,
-          description: entry.description,
-          createdAt: entry.createdAt,
-        })),
+        ...this.mapCompanyApplication(application),
       })),
     };
+  }
+
+  async getJobApplications(user: AuthenticatedUser, jobOfferId: string) {
+    const jobOffer = await this.applicationsRepository.findJobOfferForApplication(jobOfferId);
+
+    if (!jobOffer) {
+      throw new NotFoundException(`Vacante ${jobOfferId} no encontrada.`);
+    }
+
+    if (user.role !== ROLE_CODES.SYSTEM_ADMIN) {
+      const hasMembership = await this.applicationsRepository.userHasCompanyAccess(
+        user.sub,
+        jobOffer.companyId,
+      );
+
+      if (!hasMembership || user.companyId !== jobOffer.companyId) {
+        throw new ForbiddenException("No tienes acceso a los postulantes de otra empresa.");
+      }
+    }
+
+    const applications = await this.applicationsRepository.getJobApplications(jobOfferId);
+
+    return applications.map((application) => ({
+      ...this.mapCompanyApplication(application),
+      candidate: {
+        ...this.mapCompanyApplication(application).candidate,
+        resume: {
+          city: application.candidateProfile.city,
+          country: application.candidateProfile.country,
+          profileCompletion: application.candidateProfile.profileCompletion ?? 0,
+          personalInfo:
+            (application.candidateProfile.personalInfo as Record<string, string> | null) ?? null,
+          educationRecords: application.candidateProfile.educationRecords.map((record) => ({
+            id: record.id,
+            level: record.level ?? "Sin definir",
+            institution: record.institution,
+            title: record.degree,
+            studyArea: record.fieldOfStudy ?? "",
+            graduationYear: record.graduationYear ? String(record.graduationYear) : "",
+          })),
+          languageRecords: application.candidateProfile.languages.map((record) => ({
+            id: record.id,
+            language: record.name,
+            spokenLevel: record.spokenLevel ?? record.proficiency ?? "",
+            writtenLevel: record.writtenLevel ?? record.proficiency ?? "",
+          })),
+          trainingRecords: application.candidateProfile.certifications.map((record) => ({
+            id: record.id,
+            institution: record.issuer ?? "",
+            eventType: record.eventType ?? "",
+            eventName: record.name,
+            studyArea: record.studyArea ?? "",
+            certificationType: record.certificationType ?? "",
+            startDate: record.startDate?.toISOString().slice(0, 10) ?? "",
+            endDate: record.endDate?.toISOString().slice(0, 10) ?? "",
+          })),
+          experienceRecords: application.candidateProfile.workExperiences.map((record) => ({
+            id: record.id,
+            company: record.companyName,
+            position: record.position,
+            department: record.department ?? "",
+            startDate: record.startDate?.toISOString().slice(0, 10) ?? "",
+            endDate: record.endDate?.toISOString().slice(0, 10) ?? "",
+            currentlyWorking: record.isCurrent ? "SI" : "NO",
+            city: record.location ?? "",
+            responsibilities: record.description ?? "",
+            achievements: record.achievements ?? "",
+          })),
+          referenceRecords: application.candidateProfile.references.map((record) => ({
+            id: record.id,
+            fullName: record.fullName,
+            relationship: record.relationship ?? "",
+            phone: record.phone ?? "",
+            email: record.email ?? "",
+            city: record.city ?? "",
+          })),
+        },
+      },
+    }));
   }
 
   private calculateYearsExperience(
@@ -356,5 +427,61 @@ export class ApplicationsService {
 
   private toStringArray(value: unknown): string[] {
     return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  }
+
+  private mapCompanyApplication(
+    application: {
+      id: string;
+      status: JobApplicationStatus;
+      compatibilityScore: number;
+      appliedAt: Date;
+      candidateProfile: {
+        id: string;
+        user: {
+          id: string;
+          firstName: string;
+          lastName: string;
+          email: string;
+        };
+      };
+      jobOffer: {
+        id: string;
+        title: string;
+        companyId: string;
+      };
+      timelineEntries: Array<{
+        id: string;
+        status: JobApplicationStatus;
+        title: string;
+        description: string | null;
+        createdAt: Date;
+      }>;
+    },
+  ) {
+    return {
+      id: application.id,
+      status: application.status,
+      compatibilityScore: application.compatibilityScore,
+      appliedAt: application.appliedAt,
+      candidate: {
+        id: application.candidateProfile.user.id,
+        profileId: application.candidateProfile.id,
+        name:
+          `${application.candidateProfile.user.firstName} ${application.candidateProfile.user.lastName}`.trim(),
+        email: application.candidateProfile.user.email,
+      },
+      jobOffer: {
+        id: application.jobOffer.id,
+        title: application.jobOffer.title,
+        companyId: application.jobOffer.companyId,
+      },
+      timelineEntries: application.timelineEntries.map((entry) => ({
+        id: entry.id,
+        status: entry.status,
+        title: entry.title,
+        description: entry.description,
+        createdAt: entry.createdAt,
+      })),
+    };
   }
 }

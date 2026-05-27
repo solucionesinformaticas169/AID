@@ -131,6 +131,21 @@ export class UploadsService {
     };
   }
 
+  async getDocumentFile(
+    user: AuthenticatedUser,
+    documentId: string,
+  ) {
+    const document = await this.assertDocumentAccess(user, documentId);
+    const buffer = await this.storageService.downloadObject(document.storagePath);
+
+    return {
+      documentId: document.id,
+      fileName: document.fileName,
+      mimeType: document.mimeType,
+      buffer,
+    };
+  }
+
   async deleteDocument(user: AuthenticatedUser, documentId: string) {
     const document = await this.assertDocumentAccess(user, documentId, { requireOwnerOrAdmin: true });
 

@@ -197,6 +197,75 @@ export class ApplicationsRepository {
     });
   }
 
+  getJobApplications(jobOfferId: string) {
+    return this.prisma.jobApplication.findMany({
+      where: {
+        jobOfferId,
+      },
+      include: {
+        candidateProfile: {
+          include: {
+            user: true,
+            documents: {
+              orderBy: {
+                createdAt: "desc",
+              },
+            },
+            educationRecords: {
+              orderBy: [
+                {
+                  graduationYear: "desc",
+                },
+                {
+                  createdAt: "desc",
+                },
+              ],
+            },
+            workExperiences: {
+              orderBy: [
+                {
+                  startDate: "desc",
+                },
+                {
+                  createdAt: "desc",
+                },
+              ],
+            },
+            languages: {
+              orderBy: {
+                createdAt: "desc",
+              },
+            },
+            certifications: {
+              orderBy: [
+                {
+                  startDate: "desc",
+                },
+                {
+                  createdAt: "desc",
+                },
+              ],
+            },
+            references: {
+              orderBy: {
+                createdAt: "desc",
+              },
+            },
+          },
+        },
+        jobOffer: true,
+        timelineEntries: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+      orderBy: {
+        appliedAt: "desc",
+      },
+    });
+  }
+
   userHasCompanyAccess(userId: string, companyId: string) {
     return this.prisma.companyUser.findFirst({
       where: {

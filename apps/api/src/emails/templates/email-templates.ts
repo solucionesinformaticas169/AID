@@ -17,6 +17,7 @@ type VerificationTemplateInput = {
 type PasswordResetTemplateInput = {
   name: string;
   resetUrl: string;
+  expiresInMinutes: number;
 };
 
 type ApplicationSubmittedTemplateInput = {
@@ -62,7 +63,7 @@ export function renderPasswordResetTemplate(input: PasswordResetTemplateInput) {
     title: "Recupera el acceso a tu cuenta",
     intro: `Hola ${input.name}, recibimos una solicitud para restablecer tu contrasena.`,
     bodyHtml:
-      "<p>Usa el siguiente enlace seguro para definir una nueva contrasena. Por seguridad, el enlace expira pronto.</p>",
+      `<p>Usa el siguiente enlace seguro para definir una nueva contrasena. Por seguridad, el enlace expira en ${input.expiresInMinutes} minutos.</p>`,
     ctaLabel: "Restablecer contrasena",
     ctaUrl: input.resetUrl,
     footer: "Si no solicitaste este cambio, te recomendamos revisar la seguridad de tu correo.",

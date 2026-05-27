@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 export default function ResetPasswordPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [newPassword, setNewPassword] = useState("");
@@ -36,8 +37,11 @@ export default function ResetPasswordPage() {
         throw new Error(payload.message ?? "No se pudo restablecer la contrasena.");
       }
 
-      setMessage(payload.message ?? "Contrasena actualizada correctamente.");
+      setMessage(payload.message ?? "Contrasena actualizada correctamente. Redirigiendo al login...");
       setNewPassword("");
+      window.setTimeout(() => {
+        router.push("/login?reset=success");
+      }, 1200);
     } catch (submitError) {
       setError(
         submitError instanceof Error ? submitError.message : "No se pudo restablecer la contrasena.",
@@ -65,6 +69,9 @@ export default function ResetPasswordPage() {
             </div>
           ) : (
             <form className="space-y-4" onSubmit={handleSubmit}>
+              <p className="text-sm text-muted-foreground">
+                Define tu nueva contrasena antes de que el enlace temporal caduque.
+              </p>
               <Input
                 type="password"
                 placeholder="Nueva contrasena"

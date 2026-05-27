@@ -338,6 +338,9 @@ export class AuthService {
 
   async requestPasswordReset(payload: RequestPasswordResetDto) {
     const user = await this.authRepository.findUserByEmail(payload.email);
+    const passwordResetTokenMinutes = Number(
+      this.configService.get<string>("PASSWORD_RESET_TOKEN_MINUTES") ?? "15",
+    );
 
     if (!user) {
       return {
@@ -347,7 +350,7 @@ export class AuthService {
     }
 
     const rawToken = await this.createTokenRecord(user.id, AuthTokenType.PASSWORD_RESET, {
-      expiresInMinutes: 30,
+      expiresInMinutes: passwordResetTokenMinutes,
     });
 
     try {
@@ -356,6 +359,7 @@ export class AuthService {
         recipientEmail: user.email,
         name: `${user.firstName} ${user.lastName}`,
         resetUrl: this.emailsService.buildPasswordResetUrl(rawToken),
+        expiresInMinutes: passwordResetTokenMinutes,
       });
     } catch (error) {
       this.logger.warn(`No se pudo enviar el correo de recuperacion a ${user.email}: ${this.toErrorMessage(error)}`, {
@@ -367,7 +371,7 @@ export class AuthService {
 
     return {
       message:
-        "Si el correo existe en nuestra plataforma, recibiras instrucciones para recuperar el acceso.",
+        "Si el correo existe en nuestra plataforma, recibiras un enlace temporal para recuperar el acceso.",
     };
   }
 

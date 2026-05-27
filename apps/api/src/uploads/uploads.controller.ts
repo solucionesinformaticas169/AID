@@ -7,6 +7,8 @@ import {
   ParseFilePipeBuilder,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from "@nestjs/common";
@@ -20,6 +22,7 @@ import { DocumentUrlQueryDto } from "./dto/document-url-query.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";
 import type { UploadedDocumentFile } from "./uploaded-document-file.type";
 import { UploadsService } from "./uploads.service";
+import type { Response } from "express";
 
 @Controller("uploads")
 export class UploadsController {
@@ -82,6 +85,25 @@ export class UploadsController {
     return this.uploadsService.getSignedDocumentUrl(user, documentId, {
       download: query.download,
     });
+  }
+
+  @Get("documents/:documentId/file")
+  async getDocumentFile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("documentId") documentId: string,
+    @Query() query: DocumentUrlQueryDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const payload = await this.uploadsService.getDocumentFile(user, documentId);
+    const safeFileName = encodeURIComponent(payload.fileName);
+
+    response.setHeader("Content-Type", payload.mimeType);
+    response.setHeader(
+      "Content-Disposition",
+      `${query.download ? "attachment" : "inline"}; filename*=UTF-8''${safeFileName}`,
+    );
+
+    return new StreamableFile(payload.buffer);
   }
 
   @Delete("documents/:documentId")

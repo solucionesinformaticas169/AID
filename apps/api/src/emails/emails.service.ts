@@ -73,6 +73,7 @@ export class EmailsService {
     recipientEmail: string;
     name: string;
     resetUrl: string;
+    expiresInMinutes: number;
   }) {
     return this.sendTransactionalEmail({
       userId: input.userId,
@@ -82,10 +83,12 @@ export class EmailsService {
       html: renderPasswordResetTemplate({
         name: input.name,
         resetUrl: input.resetUrl,
+        expiresInMinutes: input.expiresInMinutes,
       }),
       idempotencyKey: `password-reset/${input.userId}`,
       metadata: {
         resetUrl: input.resetUrl,
+        expiresInMinutes: input.expiresInMinutes,
       },
     });
   }

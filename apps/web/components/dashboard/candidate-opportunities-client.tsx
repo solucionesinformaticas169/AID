@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { createApplication, getMyApplications, type CandidateApplication } from "@/lib/api/applications";
 import { getPublicJobs, type PublicJob } from "@/lib/api/jobs";
 import { vacancies } from "@/lib/mock-data";
 
@@ -31,6 +33,21 @@ type CandidateResumeReadinessResponse = {
   profile: {
     profileCompletion?: number | null;
   } | null;
+  educationRecords?: Array<{
+    id: string;
+    institution: string;
+    title: string;
+  }>;
+  experienceRecords?: Array<{
+    id: string;
+    company: string;
+    position: string;
+  }>;
+  trainingRecords?: Array<{
+    id: string;
+    institution: string;
+    eventName: string;
+  }>;
   documents?: Array<{
     id: string;
     type: string;
@@ -41,6 +58,15 @@ type CandidateApplicationReadiness = {
   profileCompletion: number;
   hasCv: boolean;
   canApply: boolean;
+};
+
+type CompatibilityPreview = {
+  score: number;
+  educationMet: boolean;
+  experienceMet: boolean;
+  certificationsMet: boolean;
+  languageMet: boolean;
+  calculatedYearsExperience: number;
 };
 
 const defaultAdvancedFilters: AdvancedJobFilters = {
@@ -350,6 +376,296 @@ function CandidateAdvancedFiltersModal({
   );
 }
 
+type CandidateApplyModalProps = {
+  job: PublicJob;
+  snapshot: CandidateResumeReadinessResponse | null;
+  onCancel: () => void;
+  onSubmitSuccess: () => void;
+};
+
+function CandidateApplyModal({
+  job,
+  snapshot,
+  onCancel,
+  onSubmitSuccess,
+}: CandidateApplyModalProps) {
+  const [coverLetter, setCoverLetter] = useState("");
+  const [selectedEducationIds, setSelectedEducationIds] = useState<string[]>([]);
+  const [selectedWorkExperienceIds, setSelectedWorkExperienceIds] = useState<string[]>([]);
+  const [selectedCertificationIds, setSelectedCertificationIds] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const educationRecords = snapshot?.educationRecords ?? [];
+  const experienceRecords = snapshot?.experienceRecords ?? [];
+  const trainingRecords = snapshot?.trainingRecords ?? [];
+
+  const compatibilityPreview = useMemo<CompatibilityPreview>(() => {
+    const selectedEducation = educationRecords.filter((record) =>
+      selectedEducationIds.includes(record.id),
+    );
+    const selectedExperience = experienceRecords.filter((record) =>
+      selectedWorkExperienceIds.includes(record.id),
+    );
+    const selectedTrainings = trainingRecords.filter((record) =>
+      selectedCertificationIds.includes(record.id),
+    );
+
+    const educationMet = job.requiredEducationLevel
+      ? selectedEducation.some((record) =>
+          normalizeText(record.title).includes(normalizeText(job.requiredEducationLevel ?? "")),
+        )
+      : true;
+
+    const calculatedYearsExperience = selectedExperience.length;
+    const experienceMet = calculatedYearsExperience >= (job.minimumYearsExperience ?? 0);
+
+    const requiredCertifications = job.requiredCertifications ?? [];
+    const certificationsMet =
+      requiredCertifications.length === 0 ||
+      requiredCertifications.every((requirement) =>
+        selectedTrainings.some((record) =>
+          normalizeText(record.eventName).includes(normalizeText(requirement)),
+        ),
+      );
+
+    const languageMet = (job.requiredLanguages?.length ?? 0) === 0;
+
+    const checks = [
+      [Boolean(job.requiredEducationLevel), educationMet],
+      [Boolean(job.minimumYearsExperience && job.minimumYearsExperience > 0), experienceMet],
+      [requiredCertifications.length > 0, certificationsMet],
+      [(job.requiredLanguages?.length ?? 0) > 0, languageMet],
+    ].filter(([required]) => required);
+
+    const score =
+      checks.length === 0
+        ? 100
+        : Math.round((checks.filter(([, met]) => met).length / checks.length) * 100);
+
+    return {
+      score,
+      educationMet,
+      experienceMet,
+      certificationsMet,
+      languageMet,
+      calculatedYearsExperience,
+    };
+  }, [
+    educationRecords,
+    experienceRecords,
+    job.minimumYearsExperience,
+    job.requiredCertifications,
+    job.requiredEducationLevel,
+    job.requiredLanguages,
+    selectedCertificationIds,
+    selectedEducationIds,
+    selectedWorkExperienceIds,
+    trainingRecords,
+  ]);
+
+  function toggleSelection(id: string, current: string[], setter: (value: string[]) => void) {
+    setter(current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  async function handleSubmit() {
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      await createApplication({
+        jobOfferId: job.id,
+        coverLetter: coverLetter.trim() || undefined,
+        selectedEducationIds,
+        selectedWorkExperienceIds,
+        selectedCertificationIds,
+      });
+      onSubmitSuccess();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "No se pudo registrar la postulacion.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4 text-sm text-muted-foreground">
+        Selecciona la informacion de tu hoja de vida que quieres usar para esta postulacion.
+        Puedes continuar aunque alguna seccion todavia este vacia.
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Mensaje breve para la empresa (opcional)</p>
+        <Textarea
+          value={coverLetter}
+          onChange={(event) => setCoverLetter(event.target.value)}
+          placeholder="Cuentale por que tu perfil encaja con esta vacante."
+          className="min-h-28"
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-3 rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+          <p className="text-sm font-semibold text-primary">Estudios</p>
+          {educationRecords.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aun no has registrado estudios.</p>
+          ) : (
+            educationRecords.map((record) => (
+              <label key={record.id} className="flex items-start gap-3 rounded-xl border border-border/70 p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedEducationIds.includes(record.id)}
+                  onChange={() =>
+                    toggleSelection(record.id, selectedEducationIds, setSelectedEducationIds)
+                  }
+                  className="mt-1 size-4"
+                />
+                <span>
+                  <span className="block font-medium text-foreground">{record.title}</span>
+                  <span className="text-muted-foreground">{record.institution}</span>
+                </span>
+              </label>
+            ))
+          )}
+        </div>
+
+        <div className="space-y-3 rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+          <p className="text-sm font-semibold text-primary">Experiencia</p>
+          {experienceRecords.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aun no has registrado experiencia.</p>
+          ) : (
+            experienceRecords.map((record) => (
+              <label key={record.id} className="flex items-start gap-3 rounded-xl border border-border/70 p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedWorkExperienceIds.includes(record.id)}
+                  onChange={() =>
+                    toggleSelection(
+                      record.id,
+                      selectedWorkExperienceIds,
+                      setSelectedWorkExperienceIds,
+                    )
+                  }
+                  className="mt-1 size-4"
+                />
+                <span>
+                  <span className="block font-medium text-foreground">{record.position}</span>
+                  <span className="text-muted-foreground">{record.company}</span>
+                </span>
+              </label>
+            ))
+          )}
+        </div>
+
+        <div className="space-y-3 rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+          <p className="text-sm font-semibold text-primary">Capacitaciones / certificaciones</p>
+          {trainingRecords.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aun no has registrado capacitaciones o certificaciones.
+            </p>
+          ) : (
+            trainingRecords.map((record) => (
+              <label key={record.id} className="flex items-start gap-3 rounded-xl border border-border/70 p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedCertificationIds.includes(record.id)}
+                  onChange={() =>
+                    toggleSelection(
+                      record.id,
+                      selectedCertificationIds,
+                      setSelectedCertificationIds,
+                    )
+                  }
+                  className="mt-1 size-4"
+                />
+                <span>
+                  <span className="block font-medium text-foreground">{record.eventName}</span>
+                  <span className="text-muted-foreground">{record.institution}</span>
+                </span>
+              </label>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-[1.25rem] border border-border/70 bg-card/80 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-primary">Vista previa de compatibilidad</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Puntuacion estimada antes de enviar tu postulacion.
+            </p>
+          </div>
+          <Badge variant={compatibilityPreview.score >= 100 ? "default" : "secondary"}>
+            {compatibilityPreview.score}% estimado
+          </Badge>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-border/70 bg-background/60 p-3 text-sm">
+            Estudios requeridos:{" "}
+            <span className="font-medium">
+              {job.requiredEducationLevel ?? "No aplica"}
+            </span>
+            <p className="mt-1 text-muted-foreground">
+              {compatibilityPreview.educationMet ? "Cumplido" : "Pendiente"}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/60 p-3 text-sm">
+            Experiencia minima:{" "}
+            <span className="font-medium">
+              {job.minimumYearsExperience && job.minimumYearsExperience > 0
+                ? `${job.minimumYearsExperience} anos`
+                : "No aplica"}
+            </span>
+            <p className="mt-1 text-muted-foreground">
+              Seleccion actual: {compatibilityPreview.calculatedYearsExperience} registro(s).{" "}
+              {compatibilityPreview.experienceMet ? "Cumplido" : "Pendiente"}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/60 p-3 text-sm">
+            Certificaciones requeridas:{" "}
+            <span className="font-medium">
+              {job.requiredCertifications?.length
+                ? job.requiredCertifications.join(", ")
+                : "No aplica"}
+            </span>
+            <p className="mt-1 text-muted-foreground">
+              {compatibilityPreview.certificationsMet ? "Cumplido" : "Pendiente"}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/60 p-3 text-sm">
+            Idiomas requeridos:{" "}
+            <span className="font-medium">
+              {job.requiredLanguages?.length ? job.requiredLanguages.join(", ") : "No aplica"}
+            </span>
+            <p className="mt-1 text-muted-foreground">
+              {compatibilityPreview.languageMet
+                ? "Cumplido o sin requisito"
+                : "Pendiente"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      <div className="flex flex-wrap justify-end gap-3">
+        <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          Cancelar
+        </Button>
+        <Button onClick={() => void handleSubmit()} disabled={isSubmitting}>
+          {isSubmitting ? "Postulando..." : "Confirmar postulacion"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function CandidateOpportunitiesClient() {
   const router = useRouter();
   const jobsPerPage = 5;
@@ -361,6 +677,8 @@ export function CandidateOpportunitiesClient() {
   const [usingDemoJobs, setUsingDemoJobs] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedJobFilters>(defaultAdvancedFilters);
   const [applicationReadiness, setApplicationReadiness] = useState<CandidateApplicationReadiness | null>(null);
+  const [myApplications, setMyApplications] = useState<CandidateApplication[]>([]);
+  const [resumeSnapshot, setResumeSnapshot] = useState<CandidateResumeReadinessResponse | null>(null);
   const [isReadinessLoading, setIsReadinessLoading] = useState(true);
   const { showToast, openModal, closeModal } = useFeedback();
 
@@ -418,25 +736,53 @@ export function CandidateOpportunitiesClient() {
       return;
     }
 
+    if (myApplications.some((application) => application.jobOffer.id === job.id)) {
+      openModal({
+        title: "Ya postulaste a esta vacante",
+        description: `La vacante ${job.title} ya forma parte de tu seguimiento actual.`,
+        content: (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Para evitar duplicados, una misma vacante solo puede recibir una postulacion por candidato.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={closeModal}>
+                Cerrar
+              </Button>
+              <Button
+                onClick={() => {
+                  closeModal();
+                  router.push("/candidato");
+                }}
+              >
+                Ver mis postulaciones
+              </Button>
+            </div>
+          </div>
+        ),
+      });
+      return;
+    }
+
     openModal({
       title: `Postular a ${job.title}`,
       description: `Empresa: ${job.company.name}`,
       content: (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Esta vacante ya puede explorarse con filtros avanzados. El siguiente paso recomendable es completar la postulacion con estudios, experiencia y certificaciones validas para mejorar tu compatibilidad.
-          </p>
-          <div className="flex justify-end">
-            <Button
-              onClick={() => {
-                closeModal();
-                router.push(`/vacantes/${job.slug}`);
-              }}
-            >
-              Abrir proceso de postulacion
-            </Button>
-          </div>
-        </div>
+        <CandidateApplyModal
+          job={job}
+          snapshot={resumeSnapshot}
+          onCancel={closeModal}
+          onSubmitSuccess={() => {
+            closeModal();
+            showToast({
+              title: "Postulacion enviada",
+              description: "La vacante ya aparece en tu seguimiento como enviada.",
+            });
+            window.dispatchEvent(new CustomEvent("candidate-opportunities:refresh"));
+            void getMyApplications().then(setMyApplications).catch(() => undefined);
+            router.push("/candidato");
+          }}
+        />
       ),
     });
   }
@@ -765,6 +1111,7 @@ export function CandidateOpportunitiesClient() {
         const hasCv = (payload.documents ?? []).some((document) => document.type === "CV");
 
         if (active) {
+          setResumeSnapshot(payload);
           setApplicationReadiness({
             profileCompletion,
             hasCv,
@@ -773,6 +1120,7 @@ export function CandidateOpportunitiesClient() {
         }
       } catch {
         if (active) {
+          setResumeSnapshot(null);
           setApplicationReadiness({
             profileCompletion: 0,
             hasCv: false,
@@ -787,6 +1135,30 @@ export function CandidateOpportunitiesClient() {
     };
 
     void loadApplicationReadiness();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadMyApplicationsSnapshot = async () => {
+      try {
+        const response = await getMyApplications();
+
+        if (active) {
+          setMyApplications(response);
+        }
+      } catch {
+        if (active) {
+          setMyApplications([]);
+        }
+      }
+    };
+
+    void loadMyApplicationsSnapshot();
 
     return () => {
       active = false;

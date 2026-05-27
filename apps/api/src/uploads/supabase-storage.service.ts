@@ -96,7 +96,6 @@ export class SupabaseStorageService {
 
     const safeFileName = this.buildSafeFileName(input.file.originalname);
     const storagePath = [
-      "candidate-documents",
       input.candidateProfileId,
       input.documentType.toLowerCase(),
       `${randomUUID()}-${safeFileName}`,
@@ -125,30 +124,55 @@ export class SupabaseStorageService {
   async createSignedUrl(storagePath: string, download = false) {
     this.ensureConfigured();
 
-    const { data, error } = await this.supabase!.storage
-      .from(this.bucket)
-      .createSignedUrl(storagePath, 60 * 10, {
-        download,
-      });
+    for (const candidatePath of this.getCandidatePaths(storagePath)) {
+      const { data, error } = await this.supabase!.storage
+        .from(this.bucket)
+        .createSignedUrl(candidatePath, 60 * 10, {
+          download,
+        });
 
-    if (error || !data?.signedUrl) {
-      throw new InternalServerErrorException(
-        `No se pudo generar la URL firmada del documento: ${error?.message ?? "sin detalle"}`,
-      );
+      if (!error && data?.signedUrl) {
+        return data.signedUrl;
+      }
     }
 
-    return data.signedUrl;
+    throw new InternalServerErrorException(
+      "No se pudo generar la URL firmada del documento.",
+    );
+  }
+
+  async downloadObject(storagePath: string) {
+    this.ensureConfigured();
+
+    for (const candidatePath of this.getCandidatePaths(storagePath)) {
+      const { data, error } = await this.supabase!.storage.from(this.bucket).download(candidatePath);
+
+      if (error || !data) {
+        continue;
+      }
+
+      return Buffer.from(await data.arrayBuffer());
+    }
+
+    throw new InternalServerErrorException(
+      "No se pudo descargar el documento desde Supabase Storage.",
+    );
   }
 
   async removeObject(storagePath: string) {
     this.ensureConfigured();
-    const { error } = await this.supabase!.storage.from(this.bucket).remove([storagePath]);
 
-    if (error) {
-      throw new InternalServerErrorException(
-        `No se pudo eliminar el archivo en Supabase Storage: ${error.message}`,
-      );
+    for (const candidatePath of this.getCandidatePaths(storagePath)) {
+      const { error } = await this.supabase!.storage.from(this.bucket).remove([candidatePath]);
+
+      if (!error) {
+        return;
+      }
     }
+
+    throw new InternalServerErrorException(
+      "No se pudo eliminar el archivo en Supabase Storage.",
+    );
   }
 
   private validateFile(documentType: DocumentType, file: UploadableFile) {
@@ -241,5 +265,16 @@ export class SupabaseStorageService {
     }
 
     return null;
+  }
+
+  private getCandidatePaths(storagePath: string) {
+    const normalizedPath = storagePath.replace(/^\/+/, "");
+    const bucketPrefix = `${this.bucket}/`;
+
+    if (normalizedPath.startsWith(bucketPrefix)) {
+      return [normalizedPath, normalizedPath.slice(bucketPrefix.length)];
+    }
+
+    return [normalizedPath, `${bucketPrefix}${normalizedPath}`];
   }
 }

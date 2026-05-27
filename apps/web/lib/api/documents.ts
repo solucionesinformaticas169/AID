@@ -24,6 +24,10 @@ type UploadDocumentResponse = {
 
 const DOCUMENTS_API_BASE = "/api/documents";
 
+export function buildDocumentFileUrl(documentId: string, options?: { download?: boolean }) {
+  return `${DOCUMENTS_API_BASE}/${documentId}/file?download=${options?.download === true}`;
+}
+
 async function parseJsonResponse<T>(response: Response): Promise<T> {
   const payload = (await response.json()) as T & { message?: string | string[] };
 
@@ -40,6 +44,15 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 
 export async function getMyDocuments() {
   const response = await fetch(`${DOCUMENTS_API_BASE}/me`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<CandidateDocument[]>(response);
+}
+
+export async function getCandidateDocumentsByProfile(candidateProfileId: string) {
+  const response = await fetch(`/api/documents/candidate-profile/${candidateProfileId}`, {
     cache: "no-store",
     credentials: "include",
   });

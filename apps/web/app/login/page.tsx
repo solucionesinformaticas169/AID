@@ -59,9 +59,6 @@ export default function LoginPage() {
         <CardHeader>
           <BrandLogo compact className="mb-3" />
           <CardTitle>Ingreso a la plataforma</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Autenticacion conectada al backend con JWT y cookies seguras.
-          </p>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>

@@ -99,7 +99,7 @@ function ResourceSection<T>({
   const [activeFilter, setActiveFilter] = useState(defaultFilter);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 5;
+  const pageSize = 8;
 
   const filteredRows = useMemo(() => {
     const normalizedSearch = normalizeText(search.trim());
@@ -198,6 +198,75 @@ function formatOperationalCompanyStatus(status: AdminConsoleCompany["operational
   };
 
   return labels[status];
+}
+
+function formatUserRole(role?: AdminConsoleUser["roleCode"] | null) {
+  const labels: Record<NonNullable<AdminConsoleUser["roleCode"]>, string> = {
+    CANDIDATE: "Candidato",
+    RECRUITER: "Reclutador",
+    SYSTEM_ADMIN: "Administrador",
+  };
+
+  return role ? labels[role] : "Sin rol";
+}
+
+function formatJobStatus(status: AdminConsoleJob["status"]) {
+  const labels: Record<AdminConsoleJob["status"], string> = {
+    PUBLISHED: "Publicada",
+    DRAFT: "Borrador",
+    PAUSED: "Pausada",
+    CLOSED: "Cerrada",
+  };
+
+  return labels[status];
+}
+
+function formatApplicationStatus(status: AdminConsoleApplication["status"]) {
+  const labels: Record<AdminConsoleApplication["status"], string> = {
+    APPLIED: "Enviado",
+    REVIEWING: "En revision",
+    SHORTLISTED: "Preseleccionado",
+    INTERVIEW: "Entrevista",
+    REJECTED: "Rechazado",
+    HIRED: "Contratado",
+  };
+
+  return labels[status];
+}
+
+function formatPaymentStatus(status: AdminConsolePayment["status"]) {
+  const labels: Record<AdminConsolePayment["status"], string> = {
+    PAID: "Pagado",
+    PENDING: "Pendiente",
+    FAILED: "Fallido",
+    REFUNDED: "Reembolsado",
+  };
+
+  return labels[status];
+}
+
+function formatInvoiceStatus(status: AdminConsoleInvoice["status"]) {
+  const labels: Record<AdminConsoleInvoice["status"], string> = {
+    PAID: "Pagada",
+    ISSUED: "Emitida",
+    DRAFT: "Borrador",
+    FAILED: "Fallida",
+    VOID: "Anulada",
+  };
+
+  return labels[status];
+}
+
+function formatDocumentType(type: AdminConsoleDocument["type"]) {
+  const labels: Record<AdminConsoleDocument["type"], string> = {
+    CV: "Hoja de vida",
+    ID: "Identificacion",
+    CERTIFICATE: "Certificado",
+    LICENSE: "Licencia",
+    OTHER: "Otro",
+  };
+
+  return labels[type];
 }
 
 function ConfigurationCard({ label, enabled }: { label: string; enabled: boolean }) {
@@ -403,7 +472,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
         title="Usuarios"
         description="Consulta transversal de usuarios registrados, rol principal, sesiones y estado operativo."
         rows={data.users}
-        filters={["Todos", "Activos", "Inactivos", "CANDIDATE", "RECRUITER", "SYSTEM_ADMIN"]}
+        filters={["Todos", "Activos", "Inactivos", "Candidato", "Reclutador", "Administrador"]}
         defaultFilter="Todos"
         searchPlaceholder="Buscar por nombre, correo o empresa"
         getFilterValue={(row) => {
@@ -411,10 +480,10 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
             return "Inactivos";
           }
 
-          return row.roleCode ?? "Sin rol";
+          return formatUserRole(row.roleCode);
         }}
         matchesSearch={(row, search) =>
-          [row.fullName, row.email, row.companyName ?? "", row.roleCode ?? ""]
+          [row.fullName, row.email, row.companyName ?? "", formatUserRole(row.roleCode)]
             .map(normalizeText)
             .some((value) => value.includes(search))
         }
@@ -432,7 +501,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           {
             key: "role",
             label: "Rol",
-            render: (row) => statusBadge(row.roleCode ?? "Sin rol"),
+            render: (row) => statusBadge(formatUserRole(row.roleCode)),
           },
           {
             key: "company",
@@ -547,12 +616,12 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
         title="Vacantes"
         description="Inventario de vacantes con su estado de moderacion, publicacion y traccion de postulaciones."
         rows={data.jobs}
-        filters={["Todos", "PUBLISHED", "DRAFT", "PAUSED", "CLOSED"]}
+        filters={["Todos", "Publicada", "Borrador", "Pausada", "Cerrada"]}
         defaultFilter="Todos"
         searchPlaceholder="Buscar vacante, empresa o ubicacion"
-        getFilterValue={(row) => row.status}
+        getFilterValue={(row) => formatJobStatus(row.status)}
         matchesSearch={(row, search) =>
-          [row.title, row.companyName, row.city ?? "", row.country ?? ""]
+          [row.title, row.companyName, row.city ?? "", row.country ?? "", formatJobStatus(row.status)]
             .map(normalizeText)
             .some((value) => value.includes(search))
         }
@@ -570,7 +639,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           {
             key: "status",
             label: "Estado",
-            render: (row) => statusBadge(row.status),
+            render: (row) => statusBadge(formatJobStatus(row.status)),
           },
           {
             key: "applications",
@@ -592,12 +661,12 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
         title="Postulaciones"
         description="Seguimiento integral del pipeline de candidatos, compatibilidad y estado del proceso."
         rows={data.applications}
-        filters={["Todos", "APPLIED", "REVIEWING", "SHORTLISTED", "INTERVIEW", "REJECTED", "HIRED"]}
+        filters={["Todos", "Enviado", "En revision", "Preseleccionado", "Entrevista", "Rechazado", "Contratado"]}
         defaultFilter="Todos"
         searchPlaceholder="Buscar candidato, vacante o empresa"
-        getFilterValue={(row) => row.status}
+        getFilterValue={(row) => formatApplicationStatus(row.status)}
         matchesSearch={(row, search) =>
-          [row.candidateName, row.candidateEmail, row.jobTitle, row.companyName]
+          [row.candidateName, row.candidateEmail, row.jobTitle, row.companyName, formatApplicationStatus(row.status)]
             .map(normalizeText)
             .some((value) => value.includes(search))
         }
@@ -625,11 +694,11 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           {
             key: "status",
             label: "Estado",
-            render: (row) => statusBadge(row.status),
+            render: (row) => statusBadge(formatApplicationStatus(row.status)),
           },
           {
             key: "score",
-            label: "Match",
+            label: "Compatibilidad",
             render: (row) => `${row.compatibilityScore}%`,
           },
         ]}
@@ -642,12 +711,12 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
         title="Pagos y suscripciones"
         description="Cobros, proveedores de pago y contexto del plan asociado a cada transaccion."
         rows={data.payments}
-        filters={["Todos", "PAID", "PENDING", "FAILED", "REFUNDED"]}
+        filters={["Todos", "Pagado", "Pendiente", "Fallido", "Reembolsado"]}
         defaultFilter="Todos"
         searchPlaceholder="Buscar empresa, plan o proveedor"
-        getFilterValue={(row) => row.status}
+        getFilterValue={(row) => formatPaymentStatus(row.status)}
         matchesSearch={(row, search) =>
-          [row.companyName, row.planName, row.provider]
+          [row.companyName, row.planName, row.provider, formatPaymentStatus(row.status)]
             .map(normalizeText)
             .some((value) => value.includes(search))
         }
@@ -670,7 +739,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           {
             key: "status",
             label: "Estado",
-            render: (row) => statusBadge(row.status),
+            render: (row) => statusBadge(formatPaymentStatus(row.status)),
           },
           {
             key: "amount",
@@ -687,12 +756,12 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
         title="Facturas"
         description="Control financiero de facturas emitidas, pagadas o pendientes por plan y empresa."
         rows={data.invoices}
-        filters={["Todos", "PAID", "ISSUED", "DRAFT", "FAILED", "VOID"]}
+        filters={["Todos", "Pagada", "Emitida", "Borrador", "Fallida", "Anulada"]}
         defaultFilter="Todos"
         searchPlaceholder="Buscar factura, empresa o plan"
-        getFilterValue={(row) => row.status}
+        getFilterValue={(row) => formatInvoiceStatus(row.status)}
         matchesSearch={(row, search) =>
-          [row.invoiceNumber, row.companyName, row.planName]
+          [row.invoiceNumber, row.companyName, row.planName, formatInvoiceStatus(row.status)]
             .map(normalizeText)
             .some((value) => value.includes(search))
         }
@@ -715,7 +784,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           {
             key: "status",
             label: "Estado",
-            render: (row) => statusBadge(row.status),
+            render: (row) => statusBadge(formatInvoiceStatus(row.status)),
           },
           {
             key: "total",
@@ -732,12 +801,12 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
         title="Documentos"
         description="Inventario de archivos privados cargados por candidatos y disponibles para auditoria administrativa."
         rows={data.documents}
-        filters={["Todos", "CV", "ID", "CERTIFICATE", "LICENSE", "OTHER"]}
+        filters={["Todos", "Hoja de vida", "Identificacion", "Certificado", "Licencia", "Otro"]}
         defaultFilter="Todos"
         searchPlaceholder="Buscar archivo, candidato o tipo"
-        getFilterValue={(row) => row.type}
+        getFilterValue={(row) => formatDocumentType(row.type)}
         matchesSearch={(row, search) =>
-          [row.fileName, row.candidateName, row.candidateEmail, row.type]
+          [row.fileName, row.candidateName, row.candidateEmail, formatDocumentType(row.type)]
             .map(normalizeText)
             .some((value) => value.includes(search))
         }
@@ -755,7 +824,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           {
             key: "type",
             label: "Tipo",
-            render: (row) => statusBadge(row.type),
+            render: (row) => statusBadge(formatDocumentType(row.type)),
           },
           {
             key: "mime",

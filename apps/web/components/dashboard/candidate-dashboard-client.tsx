@@ -20,9 +20,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  buildDocumentFileUrl,
   deleteDocument,
   getMyDocuments,
-  getSignedDocumentUrl,
   uploadDocument,
   type CandidateDocument,
 } from "@/lib/api/documents";
@@ -35,6 +35,7 @@ const documentTypeOptions: Array<{ value: CandidateDocument["type"]; label: stri
   { value: "LICENSE", label: "Licencia" },
   { value: "OTHER", label: "Otro" },
 ];
+const timelinePageSize = 8;
 
 function formatFileSize(size: number) {
   if (size < 1024) {
@@ -73,11 +74,22 @@ export function CandidateDashboardClient() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
+  const [timelinePage, setTimelinePage] = useState(1);
   const { closeModal, showToast, openModal } = useFeedback();
 
   const filteredApplications = useMemo(
     () => applications,
     [applications],
+  );
+
+  const totalTimelinePages = Math.max(
+    1,
+    Math.ceil(filteredApplications.length / timelinePageSize),
+  );
+  const currentTimelinePage = Math.min(timelinePage, totalTimelinePages);
+  const paginatedTimelineApplications = filteredApplications.slice(
+    (currentTimelinePage - 1) * timelinePageSize,
+    currentTimelinePage * timelinePageSize,
   );
 
   const stats = useMemo(
@@ -162,6 +174,12 @@ export function CandidateDashboardClient() {
     void loadApplications();
   }, [loadApplications, loadDocuments]);
 
+  useEffect(() => {
+    if (timelinePage > totalTimelinePages) {
+      setTimelinePage(totalTimelinePages);
+    }
+  }, [timelinePage, totalTimelinePages]);
+
   const triggerLoading = () => {
     setIsLoading(true);
     Promise.allSettled([
@@ -230,11 +248,28 @@ export function CandidateDashboardClient() {
 
   async function handleSignedUrl(documentId: string, download = false) {
     setActiveDocumentId(documentId);
+    const previewWindow = !download
+      ? window.open("", "_blank", "noopener,noreferrer")
+      : null;
 
     try {
-      const response = await getSignedDocumentUrl(documentId, { download });
-      window.open(response.signedUrl, "_blank", "noopener,noreferrer");
+      const documentUrl = buildDocumentFileUrl(documentId, { download });
+
+      if (download) {
+        const link = document.createElement("a");
+        link.href = documentUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } else if (previewWindow) {
+        previewWindow.location.href = documentUrl;
+      } else {
+        window.open(documentUrl, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
+      previewWindow?.close();
       showToast({
         title: "No se pudo abrir el documento",
         description:
@@ -553,8 +588,9 @@ export function CandidateDashboardClient() {
         </Card>
 
         <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="text-xl">Timeline de postulaciones</CardTitle>
+            <Badge variant="secondary">{filteredApplications.length} resultados</Badge>
           </CardHeader>
           <CardContent className="space-y-4">
             {isApplicationsLoading ? (
@@ -566,27 +602,64 @@ export function CandidateDashboardClient() {
                 icon={<BriefcaseBusiness className="size-6" />}
               />
             ) : (
-              filteredApplications.slice(0, 3).map((application) => (
-                <div key={application.id} className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
-                  <p className="font-medium">{application.jobOffer.title}</p>
-                  <div className="mt-4 space-y-3">
-                    {application.timelineEntries.map((step, index) => (
-                      <div key={step.id} className="flex items-start gap-3">
-                        <div className="mt-1 flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{formatApplicationStatus(step.status)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {step.description ?? "Seguimiento ATS del proceso de seleccion."}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
+              <DashboardTable
+                columns={[
+                  {
+                    key: "position",
+                    label: "Puesto",
+                    render: (row) => <span className="font-medium">{row.jobOffer.title}</span>,
+                  },
+                  {
+                    key: "company",
+                    label: "Empresa",
+                    render: (row) => row.jobOffer.company?.name ?? "Empresa no disponible",
+                  },
+                  {
+                    key: "date",
+                    label: "Fecha",
+                    render: (row) =>
+                      new Intl.DateTimeFormat("es-EC", { dateStyle: "medium" }).format(
+                        new Date(row.appliedAt),
+                      ),
+                  },
+                  {
+                    key: "status",
+                    label: "Estado",
+                    render: (row) => (
+                      <Badge variant="outline">{formatApplicationStatus(row.status)}</Badge>
+                    ),
+                  },
+                ]}
+                rows={paginatedTimelineApplications}
+              />
             )}
+            {!isApplicationsLoading && filteredApplications.length > 0 ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {filteredApplications.length} registros - pagina {currentTimelinePage} de {totalTimelinePages}
+                </p>
+                <div className="flex w-full gap-2 sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 sm:flex-none"
+                    disabled={currentTimelinePage === 1}
+                    onClick={() => setTimelinePage((value) => Math.max(1, value - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 sm:flex-none"
+                    disabled={currentTimelinePage >= totalTimelinePages}
+                    onClick={() => setTimelinePage((value) => Math.min(totalTimelinePages, value + 1))}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>

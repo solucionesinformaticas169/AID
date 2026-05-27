@@ -38,6 +38,9 @@ export default function ForgotPasswordPage() {
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
+            <p className="text-sm text-muted-foreground">
+              Te enviaremos un enlace temporal a tu correo. Por seguridad, caduca en 15 minutos.
+            </p>
             <Input
               type="email"
               placeholder="correo@empresa.com"
@@ -46,7 +49,7 @@ export default function ForgotPasswordPage() {
               required
             />
             <Button className="w-full" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Enviando..." : "Enviar enlace seguro"}
+              {isSubmitting ? "Enviando..." : "Enviar enlace temporal"}
             </Button>
             {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
           </form>

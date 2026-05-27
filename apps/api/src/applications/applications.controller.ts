@@ -45,4 +45,13 @@ export class ApplicationsController {
   ) {
     return this.applicationsService.getCompanyStatistics(user, companyId);
   }
+
+  @Roles(ROLE_CODES.COMPANY_ADMIN, ROLE_CODES.RECRUITER, ROLE_CODES.SYSTEM_ADMIN)
+  @Get("job/:jobId")
+  getJobApplications(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("jobId") jobId: string,
+  ) {
+    return this.applicationsService.getJobApplications(user, jobId);
+  }
 }

@@ -25,6 +25,14 @@ export type CandidateApplication = {
   timelineEntries: CandidateApplicationTimelineEntry[];
 };
 
+export type CreateApplicationPayload = {
+  jobOfferId: string;
+  coverLetter?: string;
+  selectedEducationIds: string[];
+  selectedWorkExperienceIds: string[];
+  selectedCertificationIds: string[];
+};
+
 export type CompanyApplicationStatus = {
   status: "APPLIED" | "REVIEWING" | "SHORTLISTED" | "INTERVIEW" | "REJECTED" | "HIRED";
   total: number;
@@ -42,6 +50,7 @@ export type CompanyApplicationStatistics = {
     appliedAt: string;
     candidate: {
       id: string;
+      profileId: string;
       name: string;
       email: string;
     };
@@ -52,6 +61,75 @@ export type CompanyApplicationStatistics = {
     };
     timelineEntries: CandidateApplicationTimelineEntry[];
   }>;
+};
+
+export type CompanyJobApplicant = {
+  id: string;
+  status: string;
+  compatibilityScore: number;
+  appliedAt: string;
+  candidate: {
+    id: string;
+    profileId: string;
+    name: string;
+    email: string;
+    resume: {
+      city: string | null;
+      country: string | null;
+      profileCompletion: number;
+      personalInfo: Record<string, string> | null;
+      educationRecords: Array<{
+        id: string;
+        level: string;
+        institution: string;
+        title: string;
+        studyArea: string;
+        graduationYear: string;
+      }>;
+      languageRecords: Array<{
+        id: string;
+        language: string;
+        spokenLevel: string;
+        writtenLevel: string;
+      }>;
+      trainingRecords: Array<{
+        id: string;
+        institution: string;
+        eventType: string;
+        eventName: string;
+        studyArea: string;
+        certificationType: string;
+        startDate: string;
+        endDate: string;
+      }>;
+      experienceRecords: Array<{
+        id: string;
+        company: string;
+        position: string;
+        department: string;
+        startDate: string;
+        endDate: string;
+        currentlyWorking: string;
+        city: string;
+        responsibilities: string;
+        achievements: string;
+      }>;
+      referenceRecords: Array<{
+        id: string;
+        fullName: string;
+        relationship: string;
+        phone: string;
+        email: string;
+        city: string;
+      }>;
+    };
+  };
+  jobOffer: {
+    id: string;
+    title: string;
+    companyId: string;
+  };
+  timelineEntries: CandidateApplicationTimelineEntry[];
 };
 
 async function parseJsonResponse<T>(response: Response): Promise<T> {
@@ -77,6 +155,19 @@ export async function getMyApplications() {
   return parseJsonResponse<CandidateApplication[]>(response);
 }
 
+export async function createApplication(payload: CreateApplicationPayload) {
+  const response = await fetch("/api/applications", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  return parseJsonResponse<CandidateApplication>(response);
+}
+
 export async function getCompanyApplicationStatistics(companyId: string) {
   const response = await fetch(`/api/applications/company/${companyId}/statistics`, {
     cache: "no-store",
@@ -84,6 +175,15 @@ export async function getCompanyApplicationStatistics(companyId: string) {
   });
 
   return parseJsonResponse<CompanyApplicationStatistics>(response);
+}
+
+export async function getJobApplications(jobId: string) {
+  const response = await fetch(`/api/applications/job/${jobId}`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<CompanyJobApplicant[]>(response);
 }
 
 export async function updateApplicationStatus(
