@@ -203,6 +203,7 @@ function formatOperationalCompanyStatus(status: AdminConsoleCompany["operational
 function formatUserRole(role?: AdminConsoleUser["roleCode"] | null) {
   const labels: Record<NonNullable<AdminConsoleUser["roleCode"]>, string> = {
     CANDIDATE: "Candidato",
+    COMPANY_ADMIN: "Empresa Admin",
     RECRUITER: "Reclutador",
     SYSTEM_ADMIN: "Administrador",
   };

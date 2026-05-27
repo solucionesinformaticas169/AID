@@ -21,7 +21,7 @@ export type ModerationJob = {
 };
 
 type ModerationAction = "APPROVE" | "REQUEST_CHANGES";
-type ManagedRoleCode = "CANDIDATE" | "RECRUITER" | "SYSTEM_ADMIN";
+type ManagedRoleCode = "CANDIDATE" | "COMPANY_ADMIN" | "RECRUITER" | "SYSTEM_ADMIN";
 
 export type AdminConsoleSummary = {
   usersRegistered: number;
