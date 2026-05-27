@@ -263,18 +263,31 @@ export default function HomePage() {
               Estamos listos para apoyar procesos de seleccion, publicacion de vacantes y crecimiento laboral.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
-              <p className="font-medium">Correo</p>
-              <p className="text-muted-foreground">ivangarate@icloud.com</p>
+          <CardContent className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
+                <p className="font-medium">Correo</p>
+                <p className="text-muted-foreground">ivangarate@icloud.com</p>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
+                <p className="font-medium">Telefono</p>
+                <p className="text-muted-foreground">0962948533</p>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
+                <p className="font-medium">Atencion</p>
+                <p className="text-muted-foreground">Lunes a viernes de 08:00 a 17:00</p>
+              </div>
             </div>
-            <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
-              <p className="font-medium">Telefono</p>
-              <p className="text-muted-foreground">0962948533</p>
-            </div>
-            <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
-              <p className="font-medium">Atencion</p>
-              <p className="text-muted-foreground">Lunes a viernes de 08:00 a 17:00</p>
+            <div className="border-t border-border/60 pt-4 text-center text-sm text-muted-foreground">
+              Desarrollado por{" "}
+              <a
+                href="https://www.solucionesinformaticas.dev/"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-foreground underline decoration-primary/40 underline-offset-4 transition hover:text-primary"
+              >
+                Soluciones Informaticas
+              </a>
             </div>
           </CardContent>
         </Card>

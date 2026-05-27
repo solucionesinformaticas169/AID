@@ -16,7 +16,6 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileAboutMenuOpen, setIsMobileAboutMenuOpen] = useState(false);
   const aboutMenuRef = useRef<HTMLDivElement | null>(null);
-  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
   const isPrivateRoute =
     pathname.startsWith("/candidato") ||
     pathname.startsWith("/empresa") ||
@@ -26,11 +25,6 @@ export function Header() {
     function handlePointerDown(event: MouseEvent) {
       if (!aboutMenuRef.current?.contains(event.target as Node)) {
         setIsAboutMenuOpen(false);
-      }
-
-      if (!mobileMenuRef.current?.contains(event.target as Node)) {
-        setIsMobileMenuOpen(false);
-        setIsMobileAboutMenuOpen(false);
       }
     }
 
@@ -57,13 +51,27 @@ export function Header() {
     setIsMobileAboutMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileMenuOpen]);
+
   if (isPrivateRoute) {
     return null;
   }
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link href="/" className="transition hover:opacity-95">
           <BrandLogo compact />
         </Link>
@@ -112,9 +120,9 @@ export function Header() {
             <Link href="/login">Login</Link>
           </Button>
         </nav>
-        <div className="flex items-center gap-2" ref={mobileMenuRef}>
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
-          <div className="relative xl:hidden">
+          <div className="xl:hidden">
             <Button
               type="button"
               variant="outline"
@@ -130,61 +138,71 @@ export function Header() {
                 <Menu className="size-4" />
               )}
             </Button>
-
-            {isMobileMenuOpen ? (
-              <div className="absolute right-0 top-14 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-border/70 bg-card/95 p-4 shadow-xl backdrop-blur">
-                <div className="grid gap-2">
-                  <Button asChild variant="ghost" className="justify-start">
-                    <Link href="/">Home</Link>
-                  </Button>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/50 p-2">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
-                      onClick={() => setIsMobileAboutMenuOpen((current) => !current)}
-                      aria-expanded={isMobileAboutMenuOpen}
-                    >
-                      <span>Nosotros</span>
-                      <ChevronDown
-                        className={`size-4 transition ${isMobileAboutMenuOpen ? "rotate-180" : ""}`}
-                      />
-                    </button>
-
-                    {isMobileAboutMenuOpen ? (
-                      <div className="mt-2 grid gap-1">
-                        {siteMenu.map((siteItem) => (
-                          <Link
-                            key={siteItem.href}
-                            href={siteItem.href}
-                            className="rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-accent hover:text-accent-foreground"
-                            onClick={() => {
-                              setIsMobileMenuOpen(false);
-                              setIsMobileAboutMenuOpen(false);
-                            }}
-                          >
-                            {siteItem.label}
-                          </Link>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <Button asChild variant="ghost" className="justify-start">
-                    <Link href="/#contacto">Contactanos</Link>
-                  </Button>
-                  <Button asChild variant="ghost" className="justify-start">
-                    <Link href="/registro">Registro</Link>
-                  </Button>
-                  <Button asChild className="justify-start">
-                    <Link href="/login">Login</Link>
-                  </Button>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </div>
+      {isMobileMenuOpen ? (
+        <div className="xl:hidden">
+          <button
+            type="button"
+            aria-label="Cerrar menu"
+            className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[1px]"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsMobileAboutMenuOpen(false);
+            }}
+          />
+          <div className="fixed inset-x-4 top-[5.5rem] z-40 max-h-[calc(100dvh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/70 bg-card/95 p-4 shadow-xl backdrop-blur">
+            <div className="grid gap-2">
+              <Button asChild variant="ghost" className="justify-start" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link href="/">Home</Link>
+              </Button>
+
+              <div className="rounded-2xl border border-border/70 bg-background/50 p-2">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => setIsMobileAboutMenuOpen((current) => !current)}
+                  aria-expanded={isMobileAboutMenuOpen}
+                >
+                  <span>Nosotros</span>
+                  <ChevronDown
+                    className={`size-4 transition ${isMobileAboutMenuOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {isMobileAboutMenuOpen ? (
+                  <div className="mt-2 grid gap-1">
+                    {siteMenu.map((siteItem) => (
+                      <Link
+                        key={siteItem.href}
+                        href={siteItem.href}
+                        className="rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          setIsMobileAboutMenuOpen(false);
+                        }}
+                      >
+                        {siteItem.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <Button asChild variant="ghost" className="justify-start" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link href="/#contacto">Contactanos</Link>
+              </Button>
+              <Button asChild variant="ghost" className="justify-start" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link href="/registro">Registro</Link>
+              </Button>
+              <Button asChild className="justify-start" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link href="/login">Login</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

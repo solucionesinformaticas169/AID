@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EmailDeliveryStatus, EmailTemplateKind, Prisma } from "@prisma/client";
+import { createHash } from "node:crypto";
 import { Resend } from "resend";
 
 import { EmailsRepository } from "./repositories/emails.repository";
@@ -61,7 +62,7 @@ export class EmailsService {
         name: input.name,
         verificationUrl: input.verificationUrl,
       }),
-      idempotencyKey: `verify-email/${input.userId}`,
+      idempotencyKey: this.buildUrlScopedIdempotencyKey("verify-email", input.userId, input.verificationUrl),
       metadata: {
         verificationUrl: input.verificationUrl,
       },
@@ -85,7 +86,7 @@ export class EmailsService {
         resetUrl: input.resetUrl,
         expiresInMinutes: input.expiresInMinutes,
       }),
-      idempotencyKey: `password-reset/${input.userId}`,
+      idempotencyKey: this.buildUrlScopedIdempotencyKey("password-reset", input.userId, input.resetUrl),
       metadata: {
         resetUrl: input.resetUrl,
         expiresInMinutes: input.expiresInMinutes,
@@ -300,5 +301,10 @@ export class EmailsService {
       this.configService.get<string>("FRONTEND_URL") ??
       "http://localhost:3000"
     );
+  }
+
+  private buildUrlScopedIdempotencyKey(prefix: string, userId: string, url: string) {
+    const fingerprint = createHash("sha256").update(url).digest("hex").slice(0, 16);
+    return `${prefix}/${userId}/${fingerprint}`;
   }
 }
