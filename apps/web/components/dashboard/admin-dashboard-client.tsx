@@ -409,13 +409,6 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
       icon: <FileText className="size-5" />,
       sectionId: "a-documentos",
     },
-    {
-      label: "Alertas de seguridad",
-      value: String(data.summary.securityAlertsCount),
-      helper: "Bloqueos, reuso de tokens y fallos recientes.",
-      icon: <Bell className="size-5" />,
-      sectionId: superAdmin ? "a-seguridad" : "a-usuarios",
-    },
   ];
 
   const securityRows = [
