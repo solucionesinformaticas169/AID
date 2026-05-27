@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
   Building2,
   FileText,
@@ -278,16 +279,21 @@ export default function HomePage() {
                 <p className="text-muted-foreground">Lunes a viernes de 08:00 a 17:00</p>
               </div>
             </div>
-            <div className="border-t border-border/60 pt-4 text-center text-sm text-muted-foreground">
-              Desarrollado por{" "}
-              <a
-                href="https://www.solucionesinformaticas.dev/"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-foreground underline decoration-primary/40 underline-offset-4 transition hover:text-primary"
-              >
-                Soluciones Informaticas
-              </a>
+            <div className="border-t border-border/60 pt-5">
+              <div className="mx-auto flex max-w-2xl items-center justify-center gap-4 text-sm text-muted-foreground">
+                <span className="hidden h-px flex-1 bg-gradient-to-r from-transparent via-primary/50 to-primary/80 sm:block" />
+                <span className="shrink-0">Desarrollado por</span>
+                <a
+                  href="https://www.solucionesinformaticas.dev/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-2 font-medium text-foreground shadow-sm transition hover:border-primary/45 hover:bg-primary/15 hover:text-primary"
+                >
+                  Soluciones Informaticas
+                  <ArrowUpRight className="size-4" />
+                </a>
+                <span className="hidden h-px flex-1 bg-gradient-to-l from-transparent via-primary/50 to-primary/80 sm:block" />
+              </div>
             </div>
           </CardContent>
         </Card>
