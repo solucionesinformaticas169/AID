@@ -2,10 +2,45 @@ import { Injectable } from "@nestjs/common";
 import { AuditAction, PaymentStatus, PlanCode, SubscriptionStatus } from "@prisma/client";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { ListEmailDeliveriesDto } from "../dto/list-email-deliveries.dto";
 
 @Injectable()
 export class AdminRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  listEmailDeliveries(filters: ListEmailDeliveriesDto) {
+    return this.prisma.emailDeliveryLog.findMany({
+      where: {
+        recipientEmail: filters.recipientEmail,
+        templateKind: filters.templateKind,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: filters.limit ?? 20,
+      select: {
+        id: true,
+        recipientEmail: true,
+        templateKind: true,
+        subject: true,
+        provider: true,
+        providerEmailId: true,
+        status: true,
+        errorMessage: true,
+        metadata: true,
+        sentAt: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+  }
 
   async deleteUsersByEmails(emails: string[]) {
     if (emails.length === 0) {

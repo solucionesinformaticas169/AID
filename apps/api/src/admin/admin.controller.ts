@@ -5,6 +5,7 @@ import { CurrentUser, type AuthenticatedUser } from "../common/decorators/curren
 import { Roles } from "../common/decorators/roles.decorator";
 import { ListAuditLogsDto } from "../audit/dto/list-audit-logs.dto";
 import { DeleteAdminUsersDto } from "./dto/delete-admin-users.dto";
+import { ListEmailDeliveriesDto } from "./dto/list-email-deliveries.dto";
 import { ListAdminUsersDto } from "./dto/list-admin-users.dto";
 import { UpdateAdminUserStatusDto } from "./dto/update-admin-user-status.dto";
 import { UpdateJobModerationDto } from "./dto/update-job-moderation.dto";
@@ -88,5 +89,10 @@ export class AdminController {
   @Get("audit-logs")
   getAuditLogs(@Query() filters: ListAuditLogsDto) {
     return this.adminService.getAuditLogs(filters);
+  }
+
+  @Get("email-deliveries")
+  getEmailDeliveries(@Query() filters: ListEmailDeliveriesDto) {
+    return this.adminService.getEmailDeliveries(filters);
   }
 }

@@ -7,6 +7,7 @@ import { AuthRepository } from "../auth/repositories/auth.repository";
 import { CompaniesService } from "../companies/companies.service";
 import { JobsService } from "../jobs/jobs.service";
 import { UsersService } from "../users/users.service";
+import { ListEmailDeliveriesDto } from "./dto/list-email-deliveries.dto";
 import { ListAdminUsersDto } from "./dto/list-admin-users.dto";
 import {
   type JobModerationAction,
@@ -156,6 +157,10 @@ export class AdminService {
 
   getAuditLogs(filters: ListAuditLogsDto) {
     return this.auditService.listAuditLogs(filters);
+  }
+
+  getEmailDeliveries(filters: ListEmailDeliveriesDto) {
+    return this.adminRepository.listEmailDeliveries(filters);
   }
 
   async deleteUsersByEmails(emails: string[]) {
