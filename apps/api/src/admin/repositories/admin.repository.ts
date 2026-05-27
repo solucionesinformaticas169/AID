@@ -7,6 +7,65 @@ import { PrismaService } from "../../prisma/prisma.service";
 export class AdminRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async deleteUsersByEmails(emails: string[]) {
+    if (emails.length === 0) {
+      return {
+        deletedUsers: 0,
+        deletedCompanies: 0,
+      };
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const users = await tx.user.findMany({
+        where: {
+          email: {
+            in: emails,
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          companyUsers: {
+            select: {
+              companyId: true,
+            },
+          },
+        },
+      });
+
+      const companyIds = Array.from(
+        new Set(users.flatMap((user) => user.companyUsers.map((companyUser) => companyUser.companyId))),
+      );
+
+      let deletedCompanies = 0;
+
+      if (companyIds.length > 0) {
+        const deletedCompanyResult = await tx.company.deleteMany({
+          where: {
+            id: {
+              in: companyIds,
+            },
+          },
+        });
+
+        deletedCompanies = deletedCompanyResult.count;
+      }
+
+      const deletedUserResult = await tx.user.deleteMany({
+        where: {
+          email: {
+            in: users.map((user) => user.email),
+          },
+        },
+      });
+
+      return {
+        deletedUsers: deletedUserResult.count,
+        deletedCompanies,
+      };
+    });
+  }
+
   async getDashboard() {
     const [companies, users, jobs, pendingCompanies] = await Promise.all([
       this.prisma.company.count(),

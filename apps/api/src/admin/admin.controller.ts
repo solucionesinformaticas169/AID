@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
 
 import { ROLE_CODES } from "../common/constants/role-codes";
 import { CurrentUser, type AuthenticatedUser } from "../common/decorators/current-user.decorator";
 import { Roles } from "../common/decorators/roles.decorator";
 import { ListAuditLogsDto } from "../audit/dto/list-audit-logs.dto";
+import { DeleteAdminUsersDto } from "./dto/delete-admin-users.dto";
 import { ListAdminUsersDto } from "./dto/list-admin-users.dto";
 import { UpdateAdminUserStatusDto } from "./dto/update-admin-user-status.dto";
 import { UpdateJobModerationDto } from "./dto/update-job-moderation.dto";
@@ -51,6 +52,11 @@ export class AdminController {
   @Get("users")
   getUsers(@Query() filters: ListAdminUsersDto) {
     return this.adminService.getUsers(filters);
+  }
+
+  @Post("users/bulk-delete")
+  deleteUsers(@Body() payload: DeleteAdminUsersDto) {
+    return this.adminService.deleteUsersByEmails(payload.emails);
   }
 
   @Patch("users/:userId/status")

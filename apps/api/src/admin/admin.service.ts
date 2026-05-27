@@ -157,4 +157,29 @@ export class AdminService {
   getAuditLogs(filters: ListAuditLogsDto) {
     return this.auditService.listAuditLogs(filters);
   }
+
+  async deleteUsersByEmails(emails: string[]) {
+    const normalizedEmails = Array.from(
+      new Set(
+        emails
+          .map((email) => email.trim().toLowerCase())
+          .filter((email) => email.length > 0),
+      ),
+    );
+
+    const result = await this.adminRepository.deleteUsersByEmails(normalizedEmails);
+
+    this.logger.warn("Admin deleted users permanently", {
+      context: AdminService.name,
+      event: "ADMIN_USERS_DELETED",
+      emails: normalizedEmails,
+      deletedUsers: result.deletedUsers,
+      deletedCompanies: result.deletedCompanies,
+    });
+
+    return {
+      message: "Usuarios eliminados correctamente.",
+      ...result,
+    };
+  }
 }
