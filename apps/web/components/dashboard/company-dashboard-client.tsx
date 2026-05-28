@@ -1590,7 +1590,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="space-y-6">
         <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="text-xl">Planes SaaS</CardTitle>
@@ -1645,8 +1645,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
-          <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
+        <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
             <CardHeader>
               <CardTitle className="text-xl">Historial de pagos</CardTitle>
             </CardHeader>
@@ -1690,7 +1689,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
             </CardContent>
           </Card>
 
-          <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
+        <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
             <CardHeader>
               <CardTitle className="text-xl">Facturacion y facturas</CardTitle>
             </CardHeader>
@@ -1742,8 +1741,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
                 ))
               )}
             </CardContent>
-          </Card>
-        </div>
+        </Card>
       </div>
     </div>
   );

@@ -16,6 +16,8 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileAboutMenuOpen, setIsMobileAboutMenuOpen] = useState(false);
   const aboutMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuToggleRef = useRef<HTMLButtonElement | null>(null);
   const isPrivateRoute =
     pathname.startsWith("/candidato") ||
     pathname.startsWith("/empresa") ||
@@ -25,6 +27,15 @@ export function Header() {
     function handlePointerDown(event: MouseEvent) {
       if (!aboutMenuRef.current?.contains(event.target as Node)) {
         setIsAboutMenuOpen(false);
+      }
+
+      if (
+        isMobileMenuOpen &&
+        !mobileMenuRef.current?.contains(event.target as Node) &&
+        !mobileMenuToggleRef.current?.contains(event.target as Node)
+      ) {
+        setIsMobileMenuOpen(false);
+        setIsMobileAboutMenuOpen(false);
       }
     }
 
@@ -43,7 +54,7 @@ export function Header() {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, []);
+  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     setIsAboutMenuOpen(false);
@@ -124,6 +135,7 @@ export function Header() {
           <ThemeToggle />
           <div className="xl:hidden">
             <Button
+              ref={mobileMenuToggleRef}
               type="button"
               variant="outline"
               size="sm"
@@ -152,7 +164,10 @@ export function Header() {
               setIsMobileAboutMenuOpen(false);
             }}
           />
-          <div className="fixed inset-x-4 top-[5.5rem] z-40 max-h-[calc(100dvh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/70 bg-card/95 p-4 shadow-xl backdrop-blur">
+          <div
+            ref={mobileMenuRef}
+            className="fixed inset-x-4 top-[5.5rem] z-40 max-h-[calc(100dvh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/70 bg-card/95 p-4 shadow-xl backdrop-blur"
+          >
             <div className="grid gap-2">
               <Button asChild variant="ghost" className="justify-start" onClick={() => setIsMobileMenuOpen(false)}>
                 <Link href="/">Home</Link>

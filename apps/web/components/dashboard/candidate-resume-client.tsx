@@ -430,6 +430,13 @@ function calculateAge(birthDate: string) {
   }
 
   const today = new Date();
+  const birthDay = new Date(birth.getFullYear(), birth.getMonth(), birth.getDate());
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  if (birthDay >= todayDate) {
+    return "";
+  }
+
   let age = today.getFullYear() - birth.getFullYear();
   const hasBirthdayPassed =
     today.getMonth() > birth.getMonth() ||
@@ -440,6 +447,38 @@ function calculateAge(birthDate: string) {
   }
 
   return age >= 0 ? String(age) : "";
+}
+
+function getMaxBirthDate() {
+  const today = new Date();
+  today.setDate(today.getDate() - 1);
+  return today.toISOString().split("T")[0] ?? "";
+}
+
+function isValidBirthDate(value: string) {
+  if (!value) {
+    return true;
+  }
+
+  const birth = new Date(value);
+
+  if (Number.isNaN(birth.getTime())) {
+    return false;
+  }
+
+  const birthDay = new Date(birth.getFullYear(), birth.getMonth(), birth.getDate());
+  const today = new Date();
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  return birthDay < todayDate;
+}
+
+function sanitizeDocumentNumber(value: string) {
+  return value.replace(/\D+/g, "");
+}
+
+function sanitizeNameValue(value: string) {
+  return value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s'-]/g, "");
 }
 
 function formatDateLabel(value: string) {
@@ -511,6 +550,8 @@ function TextField({
   required,
   placeholder,
   disabled,
+  inputMode,
+  max,
 }: {
   label: string;
   value: string;
@@ -519,6 +560,8 @@ function TextField({
   required?: boolean;
   placeholder?: string;
   disabled?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  max?: string;
 }) {
   return (
     <label className="space-y-2">
@@ -531,6 +574,8 @@ function TextField({
         value={value}
         disabled={disabled}
         placeholder={placeholder}
+        inputMode={inputMode}
+        max={max}
         onChange={(event) => onChange(event.target.value)}
       />
     </label>
@@ -962,7 +1007,24 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
   }, [showToast]);
 
   const updateField = <K extends keyof PersonalInfoFormData>(key: K, value: PersonalInfoFormData[K]) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    let nextValue = value;
+
+    if (typeof value === "string") {
+      if (key === "documentNumber") {
+        nextValue = sanitizeDocumentNumber(value) as PersonalInfoFormData[K];
+      }
+
+      if (
+        key === "firstName" ||
+        key === "middleName" ||
+        key === "paternalLastName" ||
+        key === "maternalLastName"
+      ) {
+        nextValue = sanitizeNameValue(value) as PersonalInfoFormData[K];
+      }
+    }
+
+    setForm((current) => ({ ...current, [key]: nextValue }));
   };
 
   const handleSectionClick = (section: ResumeSection) => {
@@ -1004,6 +1066,27 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
     setIsSaving(true);
 
     try {
+      if (form.documentNumber && !/^\d+$/.test(form.documentNumber)) {
+        throw new Error("La cedula o documento debe contener solo numeros.");
+      }
+
+      const nameFields = [
+        { label: "primer nombre", value: form.firstName },
+        { label: "segundo nombre", value: form.middleName },
+        { label: "apellido paterno", value: form.paternalLastName },
+        { label: "apellido materno", value: form.maternalLastName },
+      ];
+
+      for (const field of nameFields) {
+        if (field.value.trim().length > 0 && sanitizeNameValue(field.value) !== field.value) {
+          throw new Error(`El campo ${field.label} debe contener solo letras.`);
+        }
+      }
+
+      if (!isValidBirthDate(form.birthDate)) {
+        throw new Error("La fecha de nacimiento debe ser menor a la fecha actual.");
+      }
+
       const response = await fetch("/api/candidate/profile", {
         method: "PATCH",
         credentials: "include",
@@ -2013,6 +2096,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
                 label="No. del documento C.I. / Pasaporte"
                 value={form.documentNumber}
                 onChange={(value) => updateField("documentNumber", value)}
+                inputMode="numeric"
                 required
               />
               <TextField
@@ -2042,6 +2126,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
                 type="date"
                 value={form.birthDate}
                 onChange={(value) => updateField("birthDate", value)}
+                max={getMaxBirthDate()}
               />
               <SelectField
                 label="Pais de nacimiento"
