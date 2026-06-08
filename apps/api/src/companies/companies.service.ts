@@ -103,12 +103,30 @@ export class CompaniesService {
       }
     }
 
-    return this.companiesRepository.updateProfile(companyId, user.sub, {
+    const updatedProfile = await this.companiesRepository.updateProfile(companyId, user.sub, {
       ...payload,
       taxId: payload.taxId?.trim(),
       website: payload.website?.trim(),
       billingEmail: payload.billingEmail?.trim(),
     });
+
+    return {
+      company: {
+        id: updatedProfile.id,
+        name: updatedProfile.name,
+        commercialName: updatedProfile.commercialName,
+        taxId: updatedProfile.taxId,
+        city: updatedProfile.city,
+        country: updatedProfile.country,
+        address: updatedProfile.address,
+        website: updatedProfile.website,
+        industry: updatedProfile.industry,
+        contactPosition: updatedProfile.contactPosition,
+        billingEmail: updatedProfile.billingEmail,
+        status: updatedProfile.status,
+      },
+      user: updatedProfile.user,
+    };
   }
 
   private async assertCompanyAccess(user: AuthenticatedUser, companyId: string) {
