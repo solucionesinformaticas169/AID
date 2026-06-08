@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -9,6 +10,7 @@ import { ROLE_CODES } from "../common/constants/role-codes";
 import type { AuthenticatedUser } from "../common/decorators/current-user.decorator";
 import { PlansService } from "../plans/plans.service";
 import { CreateCompanyDto } from "./dto/create-company.dto";
+import { UpdateCompanyProfileDto } from "./dto/update-company-profile.dto";
 import { CompaniesRepository } from "./repositories/companies.repository";
 
 @Injectable()
@@ -57,6 +59,56 @@ export class CompaniesService {
   async getApplicationStatistics(user: AuthenticatedUser, companyId: string) {
     await this.assertCompanyAccess(user, companyId);
     return this.applicationsService.getCompanyStatistics(user, companyId);
+  }
+
+  async getProfile(user: AuthenticatedUser, companyId: string) {
+    await this.assertCompanyAccess(user, companyId);
+    const company = await this.companiesRepository.findProfileById(companyId, user.sub);
+
+    if (!company) {
+      throw new NotFoundException(`Empresa ${companyId} no encontrada.`);
+    }
+
+    return {
+      company: {
+        id: company.id,
+        name: company.name,
+        commercialName: company.commercialName,
+        taxId: company.taxId,
+        city: company.city,
+        country: company.country,
+        address: company.address,
+        website: company.website,
+        industry: company.industry,
+        contactPosition: company.contactPosition,
+        billingEmail: company.billingEmail,
+        status: company.status,
+      },
+      user: company.companyUsers[0]?.user ?? null,
+    };
+  }
+
+  async updateProfile(user: AuthenticatedUser, companyId: string, payload: UpdateCompanyProfileDto) {
+    await this.assertCompanyAccess(user, companyId);
+
+    if (user.role !== ROLE_CODES.COMPANY_ADMIN) {
+      throw new ForbiddenException("Solo el administrador de la empresa puede editar este perfil.");
+    }
+
+    if (payload.taxId?.trim()) {
+      const existingCompany = await this.companiesRepository.findCompanyByTaxId(payload.taxId.trim());
+
+      if (existingCompany && existingCompany.id !== companyId) {
+        throw new BadRequestException("El RUC ya esta registrado por otra empresa.");
+      }
+    }
+
+    return this.companiesRepository.updateProfile(companyId, user.sub, {
+      ...payload,
+      taxId: payload.taxId?.trim(),
+      website: payload.website?.trim(),
+      billingEmail: payload.billingEmail?.trim(),
+    });
   }
 
   private async assertCompanyAccess(user: AuthenticatedUser, companyId: string) {

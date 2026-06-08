@@ -55,6 +55,12 @@ import {
   type CompanyPayment,
   type PersistedPlan,
 } from "@/lib/api/payments";
+import {
+  getCompanyProfile,
+  updateCompanyProfile,
+  type CompanyProfileResponse,
+  type UpdateCompanyProfilePayload,
+} from "@/lib/api/companies";
 import type { SessionUser } from "@/lib/auth/session";
 
 const vacancyFilters = ["Todas", "Borrador", "Publicada", "Pausada", "Cerrada"];
@@ -73,6 +79,22 @@ const applicationStatusOrder = [
 ] as const;
 const employmentCountry = "Ecuador";
 const companyTablePageSize = 8;
+
+type CompanyProfileFormState = {
+  name: string;
+  commercialName: string;
+  taxId: string;
+  city: string;
+  country: string;
+  address: string;
+  website: string;
+  industry: string;
+  contactPosition: string;
+  billingEmail: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+};
 
 type CompanyDashboardClientProps = {
   session: SessionUser | null;
@@ -160,6 +182,24 @@ function formatDateTimeLocalValue(value?: string | null) {
 
 function buildInvoicePdfUrl(invoiceId: string) {
   return `${getApiBaseUrl()}/invoices/${invoiceId}/pdf`;
+}
+
+function createCompanyProfileForm(profile: CompanyProfileResponse | null): CompanyProfileFormState {
+  return {
+    name: profile?.company.name ?? "",
+    commercialName: profile?.company.commercialName ?? "",
+    taxId: profile?.company.taxId ?? "",
+    city: profile?.company.city ?? "",
+    country: profile?.company.country ?? "",
+    address: profile?.company.address ?? "",
+    website: profile?.company.website ?? "",
+    industry: profile?.company.industry ?? "",
+    contactPosition: profile?.company.contactPosition ?? "",
+    billingEmail: profile?.company.billingEmail ?? "",
+    firstName: profile?.user?.firstName ?? "",
+    lastName: profile?.user?.lastName ?? "",
+    phone: profile?.user?.phone ?? "",
+  };
 }
 
 function CandidateResumeView({ applicant }: { applicant: CompanyJobApplicant }) {
@@ -425,8 +465,14 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
   const [companyJobs, setCompanyJobs] = useState<CompanyJob[]>([]);
   const [applicationStatistics, setApplicationStatistics] =
     useState<CompanyApplicationStatistics | null>(null);
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfileResponse | null>(null);
+  const [companyProfileForm, setCompanyProfileForm] = useState<CompanyProfileFormState>(
+    createCompanyProfileForm(null),
+  );
+  const [isEditingCompanyProfile, setIsEditingCompanyProfile] = useState(false);
   const [isBillingLoading, setIsBillingLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSavingCompanyProfile, setIsSavingCompanyProfile] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [activeCheckoutKey, setActiveCheckoutKey] = useState<string | null>(null);
   const [isCreatingJob, setIsCreatingJob] = useState(false);
@@ -490,6 +536,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
           invoicesResponse,
           plansResponse,
           companyJobsResponse,
+          companyProfileResponse,
         ] = await Promise.all([
           getCompanyApplicationStatistics(companyId),
           getCompanyBillingSummary(companyId),
@@ -497,6 +544,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
           getCompanyInvoices(companyId),
           getPlans(),
           getCompanyJobs(companyId),
+          getCompanyProfile(companyId),
         ]);
 
         setApplicationStatistics(applicationStatisticsResponse);
@@ -505,6 +553,8 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
         setInvoices(invoicesResponse);
         setPlans(plansResponse);
         setCompanyJobs(companyJobsResponse);
+        setCompanyProfile(companyProfileResponse);
+        setCompanyProfileForm(createCompanyProfileForm(companyProfileResponse));
 
         if (options?.showSuccessToast) {
           showToast({
@@ -604,6 +654,75 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
     setIsRefreshing(true);
     void loadBillingData({ showSuccessToast: true });
   };
+
+  const handleCompanyProfileFieldChange = useCallback(
+    <K extends keyof CompanyProfileFormState>(key: K, value: CompanyProfileFormState[K]) => {
+      setCompanyProfileForm((current) => ({
+        ...current,
+        [key]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleCancelCompanyProfileEdit = useCallback(() => {
+    setCompanyProfileForm(createCompanyProfileForm(companyProfile));
+    setIsEditingCompanyProfile(false);
+  }, [companyProfile]);
+
+  const handleSaveCompanyProfile = useCallback(async () => {
+    if (!companyId) {
+      showToast({
+        title: "Empresa no disponible",
+        description: "No se encontro una empresa vinculada para actualizar el perfil.",
+      });
+      return;
+    }
+
+    setIsSavingCompanyProfile(true);
+
+    try {
+      const payload: UpdateCompanyProfilePayload = {
+        name: companyProfileForm.name.trim(),
+        commercialName: companyProfileForm.commercialName.trim(),
+        taxId: companyProfileForm.taxId.trim(),
+        city: companyProfileForm.city.trim(),
+        country: companyProfileForm.country.trim(),
+        address: companyProfileForm.address.trim(),
+        website: companyProfileForm.website.trim(),
+        industry: companyProfileForm.industry.trim(),
+        contactPosition: companyProfileForm.contactPosition.trim(),
+        billingEmail: companyProfileForm.billingEmail.trim(),
+        firstName: companyProfileForm.firstName.trim(),
+        lastName: companyProfileForm.lastName.trim(),
+        phone: companyProfileForm.phone.trim(),
+      };
+
+      if (!payload.name) {
+        throw new Error("La razon social es obligatoria.");
+      }
+
+      if (!payload.firstName || !payload.lastName) {
+        throw new Error("Completa nombre y apellido del responsable.");
+      }
+
+      const response = await updateCompanyProfile(companyId, payload);
+      setCompanyProfile(response);
+      setCompanyProfileForm(createCompanyProfileForm(response));
+      setIsEditingCompanyProfile(false);
+      showToast({
+        title: "Perfil actualizado",
+        description: "Los datos de la empresa ya quedaron guardados.",
+      });
+    } catch (error) {
+      showToast({
+        title: "No se pudo actualizar",
+        description: error instanceof Error ? error.message : "No se pudieron guardar los datos de la empresa.",
+      });
+    } finally {
+      setIsSavingCompanyProfile(false);
+    }
+  }, [companyId, companyProfileForm, showToast]);
 
   const buildJobPayload = useCallback((formData: FormData) => {
     const minimumYearsExperienceRaw = String(
@@ -1089,6 +1208,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
   }
 
   const planStatus = billingSummary?.planStatus ?? null;
+  const canEditCompanyProfile = session?.role === "COMPANY_ADMIN";
   const activePlanCode = planStatus?.activePlan;
   const freePostsProgress =
     planStatus && planStatus.freePostsIncluded > 0
@@ -1124,6 +1244,155 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
           icon={<BarChart3 className="size-5" />}
         />
       </div>
+
+      <Card className="rounded-[1.5rem] border-border/60 bg-card/90">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-xl">Perfil de empresa</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Aqui puedes revisar y actualizar los datos principales con los que se registro la empresa.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {isEditingCompanyProfile ? (
+              <>
+                <Button variant="outline" onClick={handleCancelCompanyProfileEdit} disabled={isSavingCompanyProfile}>
+                  Cancelar
+                </Button>
+                <Button onClick={() => void handleSaveCompanyProfile()} disabled={isSavingCompanyProfile}>
+                  {isSavingCompanyProfile ? "Guardando..." : "Guardar datos"}
+                </Button>
+              </>
+            ) : canEditCompanyProfile ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCompanyProfileForm(createCompanyProfileForm(companyProfile));
+                  setIsEditingCompanyProfile(true);
+                }}
+              >
+                Editar datos
+              </Button>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {companyProfile ? (
+            isEditingCompanyProfile ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Razon social</label>
+                  <Input value={companyProfileForm.name} onChange={(event) => handleCompanyProfileFieldChange("name", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Nombre comercial</label>
+                  <Input value={companyProfileForm.commercialName} onChange={(event) => handleCompanyProfileFieldChange("commercialName", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">RUC</label>
+                  <Input value={companyProfileForm.taxId} onChange={(event) => handleCompanyProfileFieldChange("taxId", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Industria</label>
+                  <Input value={companyProfileForm.industry} onChange={(event) => handleCompanyProfileFieldChange("industry", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Ciudad</label>
+                  <Input value={companyProfileForm.city} onChange={(event) => handleCompanyProfileFieldChange("city", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Pais</label>
+                  <Input value={companyProfileForm.country} onChange={(event) => handleCompanyProfileFieldChange("country", event.target.value)} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-medium">Direccion</label>
+                  <Input value={companyProfileForm.address} onChange={(event) => handleCompanyProfileFieldChange("address", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Sitio web</label>
+                  <Input value={companyProfileForm.website} onChange={(event) => handleCompanyProfileFieldChange("website", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Correo de facturacion</label>
+                  <Input type="email" value={companyProfileForm.billingEmail} onChange={(event) => handleCompanyProfileFieldChange("billingEmail", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Nombre responsable</label>
+                  <Input value={companyProfileForm.firstName} onChange={(event) => handleCompanyProfileFieldChange("firstName", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Apellido responsable</label>
+                  <Input value={companyProfileForm.lastName} onChange={(event) => handleCompanyProfileFieldChange("lastName", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Cargo responsable</label>
+                  <Input value={companyProfileForm.contactPosition} onChange={(event) => handleCompanyProfileFieldChange("contactPosition", event.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Telefono responsable</label>
+                  <Input value={companyProfileForm.phone} onChange={(event) => handleCompanyProfileFieldChange("phone", event.target.value)} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-medium">Correo de acceso</label>
+                  <Input value={companyProfile.user?.email ?? session?.email ?? ""} disabled />
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Razon social</p>
+                  <p className="mt-2 font-medium">{companyProfile.company.name}</p>
+                </div>
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Nombre comercial</p>
+                  <p className="mt-2 font-medium">{companyProfile.company.commercialName || "Sin nombre comercial"}</p>
+                </div>
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">RUC</p>
+                  <p className="mt-2 font-medium">{companyProfile.company.taxId || "Sin RUC"}</p>
+                </div>
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Ubicacion</p>
+                  <p className="mt-2 font-medium">{[companyProfile.company.city, companyProfile.company.country].filter(Boolean).join(", ") || "Sin ubicacion"}</p>
+                </div>
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Direccion</p>
+                  <p className="mt-2 font-medium">{companyProfile.company.address || "Sin direccion"}</p>
+                </div>
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Sitio web</p>
+                  <p className="mt-2 font-medium">{companyProfile.company.website || "Sin sitio web"}</p>
+                </div>
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Industria</p>
+                  <p className="mt-2 font-medium">{companyProfile.company.industry || "Sin industria"}</p>
+                </div>
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Responsable</p>
+                  <p className="mt-2 font-medium">{`${companyProfile.user?.firstName ?? ""} ${companyProfile.user?.lastName ?? ""}`.trim() || "Sin responsable"}</p>
+                </div>
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Cargo y contacto</p>
+                  <p className="mt-2 font-medium">{companyProfile.company.contactPosition || "Sin cargo"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{companyProfile.user?.phone || "Sin telefono"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{companyProfile.user?.email || session?.email || "Sin correo"}</p>
+                </div>
+              </div>
+            )
+          ) : (
+            <EmptyState
+              title="Perfil pendiente"
+              description="Todavia no se pudo cargar la informacion principal de la empresa."
+              icon={<BriefcaseBusiness className="size-6" />}
+              action={
+                <Button variant="outline" onClick={triggerRefresh}>
+                  Reintentar
+                </Button>
+              }
+            />
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="rounded-[1.5rem] border-border/60 bg-card/85">
         <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
