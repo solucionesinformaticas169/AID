@@ -99,8 +99,7 @@ export class JobsService {
     const planStatus = await this.plansService.assertCompanyCanPublish(effectiveCompanyId);
     const freePublication = planStatus.freePostsRemaining > 0;
     const slug = await this.generateUniqueSlug(payload.title);
-    const shouldPublishImmediately = user.role === ROLE_CODES.SYSTEM_ADMIN;
-    const initialStatus = shouldPublishImmediately ? JobOfferStatus.PUBLISHED : JobOfferStatus.DRAFT;
+    const initialStatus = JobOfferStatus.PUBLISHED;
     const availability = this.resolveAvailability(payload.publishedAt, payload.closesAt);
     const salary = this.resolveSalaryRange(payload.salaryMin, payload.salaryMax);
 
@@ -116,9 +115,7 @@ export class JobsService {
       freePublication,
       priorityPublication: planStatus.priorityPublication,
       status: initialStatus,
-      publishedAt: shouldPublishImmediately
-        ? availability.publishedAt ?? new Date()
-        : availability.publishedAt,
+      publishedAt: availability.publishedAt ?? new Date(),
       closesAt: availability.closesAt,
       salaryMin: salary.salaryMin,
       salaryMax: salary.salaryMax,
@@ -147,22 +144,18 @@ export class JobsService {
       priorityPublication: planStatus.priorityPublication,
     });
 
-    if (shouldPublishImmediately) {
-      this.notifyCompanyJobPublished({
-        ...job,
-        company: {
-          name: company.name,
-          companyUsers: company.companyUsers,
-        },
-      });
-    }
+    this.notifyCompanyJobPublished({
+      ...job,
+      company: {
+        name: company.name,
+        companyUsers: company.companyUsers,
+      },
+    });
 
     return {
-      message: shouldPublishImmediately
-        ? freePublication
-          ? "Vacante publicada usando una carga gratuita."
-          : "Vacante publicada con suscripcion activa."
-        : "Vacante creada y enviada a moderacion administrativa.",
+      message: freePublication
+        ? "Vacante publicada usando una carga gratuita."
+        : "Vacante publicada con suscripcion activa.",
       job,
       planStatus: await this.plansService.getCompanyPlanStatus(effectiveCompanyId),
     };
