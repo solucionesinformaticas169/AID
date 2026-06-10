@@ -27,6 +27,7 @@ export function PublicJobsShowcase() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [activeJob, setActiveJob] = useState<PublicJob | null>(null);
+  const [detailJob, setDetailJob] = useState<PublicJob | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -73,6 +74,27 @@ export function PublicJobsShowcase() {
   if (isLoading) {
     return null;
   }
+
+  const detailSections = detailJob
+    ? [
+        {
+          title: "Descripcion",
+          content: detailJob.description,
+        },
+        {
+          title: "Requisitos",
+          content: detailJob.requirements,
+        },
+        {
+          title: "Responsabilidades",
+          content: detailJob.responsibilities,
+        },
+        {
+          title: "Beneficios",
+          content: detailJob.benefits,
+        },
+      ].filter((section) => section.content && section.content.trim().length > 0)
+    : [];
 
   return (
     <>
@@ -131,12 +153,13 @@ export function PublicJobsShowcase() {
                       <span>Publicada: {formatDate(job.publishedAt ?? job.createdAt)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <Link
-                        href={`/vacantes/${job.slug}`}
+                      <button
+                        type="button"
+                        onClick={() => setDetailJob(job)}
                         className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
                       >
                         Ver detalle
-                      </Link>
+                      </button>
                       <Button onClick={() => setActiveJob(job)}>
                         Postular
                         <ArrowRight className="ml-2 size-4" />
@@ -205,6 +228,133 @@ export function PublicJobsShowcase() {
                 <p className="font-medium text-foreground">{activeJob.company.name}</p>
                 <p>{[activeJob.city, activeJob.country].filter(Boolean).join(", ") || "Ecuador"}</p>
               </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild className="flex-1">
+                  <Link href="/login">Iniciar sesion</Link>
+                </Button>
+                <Button asChild variant="outline" className="flex-1">
+                  <Link href="/registro">Registrate</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+
+      {detailJob ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/35 px-4 py-6 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            aria-hidden="true"
+            onClick={() => setDetailJob(null)}
+          />
+          <Card className="relative z-10 w-full max-w-3xl rounded-[1.75rem] border-border/70 bg-card shadow-[0_20px_50px_rgba(15,23,42,0.2)]">
+            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                  Detalle de vacante
+                </p>
+                <CardTitle className="text-2xl">{detailJob.title}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {detailJob.company.name} · {[detailJob.city, detailJob.country].filter(Boolean).join(", ") || "Ecuador"}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 p-0"
+                onClick={() => setDetailJob(null)}
+              >
+                <X className="size-5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-3 rounded-[1.25rem] border border-border/70 bg-background/60 p-4 text-sm text-muted-foreground sm:grid-cols-2">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Publicada
+                  </p>
+                  <p className="mt-1 font-medium text-foreground">
+                    {formatDate(detailJob.publishedAt ?? detailJob.createdAt)}
+                  </p>
+                </div>
+                {detailJob.closesAt ? (
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      Cierre
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {formatDate(detailJob.closesAt)}
+                    </p>
+                  </div>
+                ) : null}
+                {detailJob.requiredEducationLevel ? (
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      Formacion
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {detailJob.requiredEducationLevel}
+                    </p>
+                  </div>
+                ) : null}
+                {typeof detailJob.minimumYearsExperience === "number" &&
+                detailJob.minimumYearsExperience > 0 ? (
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      Experiencia
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {detailJob.minimumYearsExperience}{" "}
+                      {detailJob.minimumYearsExperience === 1 ? "ano" : "anos"}
+                    </p>
+                  </div>
+                ) : null}
+                {detailJob.salaryMin || detailJob.salaryMax ? (
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      Rango salarial
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {detailJob.salaryMin ? `$${detailJob.salaryMin}` : "Desde definir"}{" "}
+                      {detailJob.salaryMax ? `- $${detailJob.salaryMax}` : ""}
+                    </p>
+                  </div>
+                ) : null}
+                {detailJob.requiredLanguages?.length ? (
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      Idiomas
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {detailJob.requiredLanguages.join(", ")}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
+              {detailSections.length ? (
+                <div className="grid gap-4">
+                  {detailSections.map((section) => (
+                    <div
+                      key={section.title}
+                      className="rounded-[1.1rem] border border-border/70 bg-background/55 p-4"
+                    >
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        {section.title}
+                      </p>
+                      <p className="mt-2 whitespace-pre-line text-sm text-foreground/85">
+                        {section.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4 text-sm text-muted-foreground">
+                Para continuar con la postulacion, inicia sesion con tu cuenta o registrate como candidato.
+              </div>
+
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="flex-1">
                   <Link href="/login">Iniciar sesion</Link>
