@@ -7,9 +7,10 @@ import { ArrowRight, BriefcaseBusiness, MapPin, X } from "lucide-react";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { getPublicJobs, type PublicJob } from "@/lib/api/jobs";
 
-const publicJobsPageSize = 8;
+const publicJobsPageSize = 10;
 
 function formatDate(value?: string | null) {
   if (!value) {
@@ -28,6 +29,7 @@ export function PublicJobsShowcase() {
   const [page, setPage] = useState(1);
   const [activeJob, setActiveJob] = useState<PublicJob | null>(null);
   const [detailJob, setDetailJob] = useState<PublicJob | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -60,15 +62,44 @@ export function PublicJobsShowcase() {
     };
   }, []);
 
-  const totalPages = Math.max(1, Math.ceil(jobs.length / publicJobsPageSize));
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredJobs = useMemo(() => {
+    if (!normalizedSearch) {
+      return jobs;
+    }
+
+    return jobs.filter((job) => {
+      const searchableText = [
+        job.title,
+        job.company.name,
+        job.city,
+        job.country,
+        job.description,
+        job.requirements,
+        job.responsibilities,
+        job.benefits,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedSearch);
+    });
+  }, [jobs, normalizedSearch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [normalizedSearch]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / publicJobsPageSize));
   const currentPage = Math.min(page, totalPages);
   const paginatedJobs = useMemo(
     () =>
-      jobs.slice(
+      filteredJobs.slice(
         (currentPage - 1) * publicJobsPageSize,
         currentPage * publicJobsPageSize,
       ),
-    [currentPage, jobs],
+    [currentPage, filteredJobs],
   );
 
   if (isLoading) {
@@ -109,8 +140,17 @@ export function PublicJobsShowcase() {
             </h3>
           </div>
           <p className="text-sm text-muted-foreground">
-            {jobs.length} vacantes publicadas actualmente
+            {filteredJobs.length} vacantes publicadas actualmente
           </p>
+        </div>
+
+        <div className="mb-5">
+          <Input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por cargo, empresa, ciudad o palabra clave"
+            className="h-12 rounded-2xl border-border/70 bg-background/70 px-4 text-sm shadow-[0_8px_22px_rgba(33,29,8,0.03)]"
+          />
         </div>
 
         {error ? (
@@ -121,8 +161,12 @@ export function PublicJobsShowcase() {
           />
         ) : paginatedJobs.length === 0 ? (
           <EmptyState
-            title="Sin vacantes publicadas"
-            description="Todavia no existen oportunidades activas en el portal."
+            title={normalizedSearch ? "Sin resultados para tu busqueda" : "Sin vacantes publicadas"}
+            description={
+              normalizedSearch
+                ? "Prueba con otro cargo, empresa o palabra clave para encontrar oportunidades."
+                : "Todavia no existen oportunidades activas en el portal."
+            }
             icon={<BriefcaseBusiness className="size-6" />}
           />
         ) : (
@@ -170,10 +214,10 @@ export function PublicJobsShowcase() {
               ))}
             </div>
 
-            {jobs.length > publicJobsPageSize ? (
+            {filteredJobs.length > publicJobsPageSize ? (
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {jobs.length} registros - pagina {currentPage} de {totalPages}
+                  {filteredJobs.length} registros - pagina {currentPage} de {totalPages}
                 </p>
                 <div className="flex w-full gap-2 sm:w-auto">
                   <Button
