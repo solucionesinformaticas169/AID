@@ -23,7 +23,7 @@ const ALLOWED_TYPES: Record<
   CV: {
     mimeTypes: ["application/pdf"],
     extensions: [".pdf"],
-    maxSizeMb: 2,
+    maxSizeMb: 3,
   },
   CERTIFICATE: {
     mimeTypes: ["application/pdf", "image/png", "image/jpeg"],
@@ -59,6 +59,12 @@ const BLOCKED_EXTENSIONS = new Set([
   ".html",
   ".htm",
 ]);
+
+const COMPANY_LOGO_RULES = {
+  mimeTypes: ["image/png", "image/jpeg", "image/webp"],
+  extensions: [".png", ".jpg", ".jpeg", ".webp"],
+  maxSizeMb: 2,
+};
 
 @Injectable()
 export class SupabaseStorageService {
@@ -121,6 +127,41 @@ export class SupabaseStorageService {
     };
   }
 
+  async uploadCompanyLogo(input: {
+    companyId: string;
+    file: UploadableFile;
+  }) {
+    this.ensureConfigured();
+    this.validateCompanyLogo(input.file);
+
+    const safeFileName = this.buildSafeFileName(input.file.originalname);
+    const storagePath = [
+      "companies",
+      input.companyId,
+      "branding",
+      `${randomUUID()}-${safeFileName}`,
+    ].join("/");
+
+    const { error } = await this.supabase!.storage.from(this.bucket).upload(storagePath, input.file.buffer, {
+      contentType: input.file.mimetype,
+      upsert: false,
+      cacheControl: "3600",
+    });
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `No se pudo subir el logo a Supabase Storage: ${error.message}`,
+      );
+    }
+
+    return {
+      storagePath,
+      fileName: input.file.originalname,
+      mimeType: input.file.mimetype,
+      size: input.file.size,
+    };
+  }
+
   async createSignedUrl(storagePath: string, download = false) {
     this.ensureConfigured();
 
@@ -142,6 +183,11 @@ export class SupabaseStorageService {
   }
 
   async downloadObject(storagePath: string) {
+    const payload = await this.downloadObjectPayload(storagePath);
+    return payload.buffer;
+  }
+
+  async downloadObjectPayload(storagePath: string) {
     this.ensureConfigured();
 
     for (const candidatePath of this.getCandidatePaths(storagePath)) {
@@ -151,7 +197,11 @@ export class SupabaseStorageService {
         continue;
       }
 
-      return Buffer.from(await data.arrayBuffer());
+      const buffer = Buffer.from(await data.arrayBuffer());
+      return {
+        buffer,
+        mimeType: this.detectMimeType(buffer) ?? "application/octet-stream",
+      };
     }
 
     throw new InternalServerErrorException(
@@ -219,6 +269,37 @@ export class SupabaseStorageService {
     }
   }
 
+  private validateCompanyLogo(file: UploadableFile) {
+    const extension = path.extname(file.originalname).toLowerCase();
+    const maxBytes = COMPANY_LOGO_RULES.maxSizeMb * 1024 * 1024;
+    const detectedMimeType = this.detectMimeType(file.buffer);
+    const safeOriginalName = path.basename(file.originalname);
+
+    if (safeOriginalName !== file.originalname || file.originalname.length > 180) {
+      throw new BadRequestException("El nombre del logo contiene caracteres o rutas no permitidas.");
+    }
+
+    if (BLOCKED_EXTENSIONS.has(extension)) {
+      throw new BadRequestException("La extension del logo esta bloqueada por seguridad.");
+    }
+
+    if (!COMPANY_LOGO_RULES.extensions.includes(extension)) {
+      throw new BadRequestException("El logo debe estar en formato PNG, JPG o WEBP.");
+    }
+
+    if (!COMPANY_LOGO_RULES.mimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException("El tipo de archivo del logo no es valido.");
+    }
+
+    if (!detectedMimeType || !COMPANY_LOGO_RULES.mimeTypes.includes(detectedMimeType)) {
+      throw new BadRequestException("El contenido real del logo no coincide con un formato permitido.");
+    }
+
+    if (file.size > maxBytes) {
+      throw new BadRequestException("El logo supera el tamano maximo permitido de 2 MB.");
+    }
+  }
+
   private ensureConfigured() {
     if (!this.supabase) {
       throw new InternalServerErrorException(
@@ -262,6 +343,14 @@ export class SupabaseStorageService {
 
     if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
       return "image/jpeg";
+    }
+
+    if (
+      buffer.length >= 12 &&
+      buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
+      buffer.subarray(8, 12).toString("ascii") === "WEBP"
+    ) {
+      return "image/webp";
     }
 
     return null;

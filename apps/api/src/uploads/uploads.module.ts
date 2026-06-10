@@ -11,5 +11,6 @@ import { UploadsService } from "./uploads.service";
   imports: [PrismaModule, CandidateModule],
   controllers: [UploadsController],
   providers: [UploadsService, UploadsRepository, SupabaseStorageService],
+  exports: [SupabaseStorageService],
 })
 export class UploadsModule {}

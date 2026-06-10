@@ -9,6 +9,8 @@ import { ApplicationsService } from "../applications/applications.service";
 import { ROLE_CODES } from "../common/constants/role-codes";
 import type { AuthenticatedUser } from "../common/decorators/current-user.decorator";
 import { PlansService } from "../plans/plans.service";
+import { SupabaseStorageService } from "../uploads/supabase-storage.service";
+import type { UploadedDocumentFile } from "../uploads/uploaded-document-file.type";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyProfileDto } from "./dto/update-company-profile.dto";
 import { CompaniesRepository } from "./repositories/companies.repository";
@@ -19,6 +21,7 @@ export class CompaniesService {
     private readonly companiesRepository: CompaniesRepository,
     private readonly plansService: PlansService,
     private readonly applicationsService: ApplicationsService,
+    private readonly supabaseStorageService: SupabaseStorageService,
   ) {}
 
   create(payload: CreateCompanyDto) {
@@ -79,6 +82,7 @@ export class CompaniesService {
         country: company.country,
         address: company.address,
         website: company.website,
+        logoPath: company.logoPath,
         industry: company.industry,
         contactPosition: company.contactPosition,
         billingEmail: company.billingEmail,
@@ -120,12 +124,93 @@ export class CompaniesService {
         country: updatedProfile.country,
         address: updatedProfile.address,
         website: updatedProfile.website,
+        logoPath: updatedProfile.logoPath,
         industry: updatedProfile.industry,
         contactPosition: updatedProfile.contactPosition,
         billingEmail: updatedProfile.billingEmail,
         status: updatedProfile.status,
       },
       user: updatedProfile.user,
+    };
+  }
+
+  async uploadLogo(user: AuthenticatedUser, companyId: string, file: UploadedDocumentFile) {
+    await this.assertCompanyAccess(user, companyId);
+
+    if (user.role !== ROLE_CODES.COMPANY_ADMIN) {
+      throw new ForbiddenException("Solo el administrador de la empresa puede actualizar el logo.");
+    }
+
+    const company = await this.companiesRepository.findLogoAssetById(companyId);
+
+    if (!company) {
+      throw new NotFoundException(`Empresa ${companyId} no encontrada.`);
+    }
+
+    const previousLogoPath = company.logoPath;
+    const uploadedLogo = await this.supabaseStorageService.uploadCompanyLogo({
+      companyId,
+      file,
+    });
+
+    const updatedCompany = await this.companiesRepository.updateLogoPath(companyId, uploadedLogo.storagePath);
+
+    if (previousLogoPath && previousLogoPath !== uploadedLogo.storagePath) {
+      try {
+        await this.supabaseStorageService.removeObject(previousLogoPath);
+      } catch {
+        // Mantiene el guardado exitoso aunque falle la limpieza del logo anterior.
+      }
+    }
+
+    return {
+      message: "Logo actualizado correctamente.",
+      company: updatedCompany,
+    };
+  }
+
+  async getPublicLogos() {
+    const companies = await this.companiesRepository.findPublicCompaniesWithLogo();
+
+    return companies.map((company) => ({
+      id: company.id,
+      name: company.commercialName || company.name,
+      legalName: company.name,
+      website: company.website,
+      city: company.city,
+      country: company.country,
+    }));
+  }
+
+  async getPublicLogoFile(companyId: string) {
+    const company = await this.companiesRepository.findLogoAssetById(companyId);
+
+    if (!company || !company.logoPath) {
+      throw new NotFoundException("Logo de empresa no disponible.");
+    }
+
+    const payload = await this.supabaseStorageService.downloadObjectPayload(company.logoPath);
+
+    return {
+      ...payload,
+      fileName: `${company.commercialName || company.name}-logo`,
+    };
+  }
+
+  async getCompanyLogoFile(user: AuthenticatedUser, companyId: string) {
+    await this.assertCompanyAccess(user, companyId);
+
+    const company = await this.companiesRepository.findLogoAssetById(companyId);
+
+    if (!company || !company.logoPath) {
+      throw new NotFoundException("Logo de empresa no disponible.");
+    }
+
+    const payload = await this.supabaseStorageService.downloadObjectPayload(company.logoPath);
+
+    return {
+      ...payload,
+      fileName: `${company.commercialName || company.name}-logo`,
     };
   }
 

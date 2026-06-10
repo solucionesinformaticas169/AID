@@ -2012,7 +2012,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
                     Hoja de vida propia
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Sube tu CV en PDF. Recomendacion y validacion: maximo 2 MB.
+                    Sube tu CV en PDF. Recomendacion y validacion: maximo 3 MB.
                   </p>
                 </div>
                 {cvDocument ? (
@@ -2032,7 +2032,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
                     {selectedCvFile ? selectedCvFile.name : cvDocument?.fileName ?? "No has seleccionado ningun PDF"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Solo PDF, hasta 2 MB. Si ya tienes uno cargado, puedes reemplazarlo con una nueva version.
+                    Solo PDF, hasta 3 MB. Si ya tienes uno cargado, puedes reemplazarlo con una nueva version.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

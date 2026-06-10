@@ -33,6 +33,7 @@ export class CompaniesRepository {
         country: true,
         address: true,
         website: true,
+        logoPath: true,
         industry: true,
         contactPosition: true,
         billingEmail: true,
@@ -67,6 +68,29 @@ export class CompaniesRepository {
       orderBy: {
         createdAt: "asc",
       },
+    });
+  }
+
+  findPublicCompaniesWithLogo() {
+    return this.prisma.company.findMany({
+      where: {
+        logoPath: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        commercialName: true,
+        website: true,
+        city: true,
+        country: true,
+        logoPath: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+      take: 24,
     });
   }
 
@@ -115,6 +139,7 @@ export class CompaniesRepository {
           country: true,
           address: true,
           website: true,
+          logoPath: true,
           industry: true,
           contactPosition: true,
           billingEmail: true,
@@ -142,6 +167,35 @@ export class CompaniesRepository {
         ...company,
         user,
       };
+    });
+  }
+
+  updateLogoPath(companyId: string, logoPath: string | null) {
+    return this.prisma.company.update({
+      where: { id: companyId },
+      data: {
+        logoPath,
+      },
+      select: {
+        id: true,
+        name: true,
+        commercialName: true,
+        logoPath: true,
+        status: true,
+      },
+    });
+  }
+
+  findLogoAssetById(companyId: string) {
+    return this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        id: true,
+        name: true,
+        commercialName: true,
+        logoPath: true,
+        status: true,
+      },
     });
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 export default function CompanyRegisterPage() {
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
   const [form, setForm] = useState({
     companyName: "",
     commercialName: "",
@@ -25,9 +26,14 @@ export default function CompanyRegisterPage() {
     phone: "",
     password: "",
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEmailAlreadyRegisteredError = useMemo(
+    () => /correo ya esta registrado|correo ya está registrado/i.test(error),
+    [error],
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,10 +56,31 @@ export default function CompanyRegisterPage() {
         },
         body: JSON.stringify(requestPayload),
       });
-      const payload = (await response.json()) as { message?: string; user?: { role: string } };
+      const payload = (await response.json()) as {
+        message?: string;
+        user?: { role: string; companyId?: string | null };
+      };
 
       if (!response.ok || !payload.user) {
         throw new Error(payload.message ?? "No se pudo crear la cuenta empresarial.");
+      }
+
+      if (logoFile && payload.user.companyId) {
+        const logoFormData = new FormData();
+        logoFormData.append("file", logoFile);
+
+        const logoResponse = await fetch(`/api/companies/${payload.user.companyId}/logo`, {
+          method: "POST",
+          body: logoFormData,
+        });
+        const logoPayload = (await logoResponse.json()) as { message?: string };
+
+        if (!logoResponse.ok) {
+          throw new Error(
+            logoPayload.message ??
+              "La empresa se creo, pero no se pudo subir el logo. Puedes cargarlo luego desde el perfil empresarial.",
+          );
+        }
       }
 
       setSuccess("Empresa registrada. Ya puedes iniciar sesion.");
@@ -61,11 +88,16 @@ export default function CompanyRegisterPage() {
         window.location.assign("/login");
       }, 1200);
     } catch (submitError) {
-      setError(
+      const nextError =
         submitError instanceof Error
           ? submitError.message
-          : "No se pudo crear la cuenta empresarial.",
-      );
+          : "No se pudo crear la cuenta empresarial.";
+
+      setError(nextError);
+
+      if (/correo ya esta registrado|correo ya está registrado/i.test(nextError)) {
+        emailInputRef.current?.focus();
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -168,12 +200,21 @@ export default function CompanyRegisterPage() {
                 required
               />
               <Input
+                ref={emailInputRef}
                 type="email"
                 placeholder="Correo empresarial"
                 value={form.email}
                 onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
                 required
+                className={isEmailAlreadyRegisteredError ? "border-destructive focus-visible:ring-destructive" : undefined}
               />
+              {isEmailAlreadyRegisteredError ? (
+                <div className="-mt-2 md:col-start-2">
+                  <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
+                    Este correo ya pertenece a una cuenta existente. Usa otro correo para registrar la empresa.
+                  </p>
+                </div>
+              ) : null}
               <Input
                 type="email"
                 placeholder="Correo de facturacion (opcional)"
@@ -197,8 +238,21 @@ export default function CompanyRegisterPage() {
                   minLength={6}
                 />
               </div>
+              <div className="md:col-span-2 space-y-2">
+                <label className="block text-sm font-medium text-foreground">Logo empresarial (opcional)</label>
+                <Input
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp"
+                  onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  PNG, JPG o WEBP de hasta 2 MB. Recomendado: logo horizontal de 600 x 240 px.
+                </p>
+              </div>
               {success ? <p className="text-sm text-emerald-600 md:col-span-2">{success}</p> : null}
-              {error ? <p className="text-sm text-destructive md:col-span-2">{error}</p> : null}
+              {error && !isEmailAlreadyRegisteredError ? (
+                <p className="text-sm text-destructive md:col-span-2">{error}</p>
+              ) : null}
               <div className="md:col-span-2 flex flex-wrap gap-3">
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? "Registrando..." : "Registrar empresa"}

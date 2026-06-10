@@ -375,7 +375,7 @@ export function CandidateDashboardClient() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  CV: un solo archivo PDF de hasta 2 MB. Certificados y documentos personales: PDF, PNG o JPG.
+                  CV: un solo archivo PDF de hasta 3 MB. Certificados y documentos personales: PDF, PNG o JPG.
                 </p>
               </div>
 

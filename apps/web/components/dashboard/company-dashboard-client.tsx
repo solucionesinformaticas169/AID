@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   BarChart3,
@@ -56,8 +56,11 @@ import {
   type PersistedPlan,
 } from "@/lib/api/payments";
 import {
+  getCompanyDashboardFallback,
   getCompanyProfile,
+  uploadCompanyLogo,
   updateCompanyProfile,
+  type CompanyDashboardFallbackResponse,
   type CompanyProfileResponse,
   type UpdateCompanyProfilePayload,
 } from "@/lib/api/companies";
@@ -98,6 +101,7 @@ type CompanyProfileFormState = {
 
 type CompanyDashboardClientProps = {
   session: SessionUser | null;
+  onInitialReady?: () => void;
 };
 
 function formatCurrency(value: string | number, currency = "USD") {
@@ -199,6 +203,94 @@ function createCompanyProfileForm(profile: CompanyProfileResponse | null): Compa
     firstName: profile?.user?.firstName ?? "",
     lastName: profile?.user?.lastName ?? "",
     phone: profile?.user?.phone ?? "",
+  };
+}
+
+function hasCompanyProfileData(profile: CompanyProfileResponse | null) {
+  if (!profile) {
+    return false;
+  }
+
+  return Boolean(
+    profile.company.name ||
+      profile.company.commercialName ||
+      profile.company.taxId ||
+      profile.company.city ||
+      profile.company.country ||
+      profile.company.address ||
+      profile.company.website ||
+      profile.company.logoPath ||
+      profile.company.industry ||
+      profile.company.contactPosition ||
+      profile.company.billingEmail ||
+      profile.user?.firstName ||
+      profile.user?.lastName ||
+      profile.user?.phone,
+  );
+}
+
+function isTransientFetchError(error: unknown) {
+  return (
+    error instanceof Error &&
+    /(failed to fetch|fetch failed|networkerror)/i.test(error.message)
+  );
+}
+
+function formatCompanyProfileSaveError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return "No se pudieron guardar los datos de la empresa.";
+  }
+
+  if (/file too large/i.test(error.message)) {
+    return "El logo supera el tamano maximo permitido de 2 MB.";
+  }
+
+  return error.message;
+}
+
+function createCompanyProfileFallback(
+  companyId: string,
+  session: SessionUser | null,
+  dashboard: CompanyDashboardFallbackResponse | null,
+): CompanyProfileResponse {
+  const companyUser =
+    dashboard?.company.companyUsers?.find((membership) => membership.user?.email === session?.email)?.user ??
+    dashboard?.company.companyUsers?.[0]?.user ??
+    null;
+
+  return {
+    company: {
+      id: dashboard?.company.id ?? companyId,
+      name: dashboard?.company.name ?? "",
+      commercialName: dashboard?.company.commercialName ?? "",
+      taxId: dashboard?.company.taxId ?? "",
+      city: dashboard?.company.city ?? "",
+      country: dashboard?.company.country ?? "",
+      address: dashboard?.company.address ?? "",
+      website: dashboard?.company.website ?? "",
+      logoPath: dashboard?.company.logoPath ?? null,
+      industry: dashboard?.company.industry ?? "",
+      contactPosition: dashboard?.company.contactPosition ?? "",
+      billingEmail: dashboard?.company.billingEmail ?? session?.email ?? "",
+      status: dashboard?.company.status ?? "PENDING",
+    },
+    user: companyUser
+      ? {
+          id: companyUser.id,
+          firstName: companyUser.firstName,
+          lastName: companyUser.lastName,
+          email: companyUser.email,
+          phone: companyUser.phone,
+        }
+      : session
+        ? {
+            id: session.sub,
+            firstName: "",
+            lastName: "",
+            email: session.email,
+            phone: null,
+          }
+        : null,
   };
 }
 
@@ -454,7 +546,7 @@ function JobApplicantsModalContent({
   );
 }
 
-export function CompanyDashboardClient({ session }: CompanyDashboardClientProps) {
+export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashboardClientProps) {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todas");
   const [vacanciesPage, setVacanciesPage] = useState(1);
@@ -469,6 +561,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
   const [companyProfileForm, setCompanyProfileForm] = useState<CompanyProfileFormState>(
     createCompanyProfileForm(null),
   );
+  const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
   const [isEditingCompanyProfile, setIsEditingCompanyProfile] = useState(false);
   const [isBillingLoading, setIsBillingLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -480,6 +573,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
   const [activeApplicantsJobId, setActiveApplicantsJobId] = useState<string | null>(null);
   const { closeModal, openModal, showToast } = useFeedback();
   const searchParams = useSearchParams();
+  const hasNotifiedInitialReady = useRef(false);
 
   const companyId = session?.companyId ?? process.env.NEXT_PUBLIC_DEMO_COMPANY_ID ?? "";
 
@@ -517,6 +611,29 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
     }
   }, [totalVacanciesPages, vacanciesPage]);
 
+  const resolveCompanyProfile = useCallback(async () => {
+    if (!companyId) {
+      return null;
+    }
+
+    try {
+      const profile = await getCompanyProfile(companyId);
+      if (hasCompanyProfileData(profile)) {
+        return profile;
+      }
+    } catch {
+      // Sigue con el fallback del dashboard.
+    }
+
+    try {
+      const dashboardFallback = await getCompanyDashboardFallback(companyId);
+      const fallbackProfile = createCompanyProfileFallback(companyId, session, dashboardFallback);
+      return hasCompanyProfileData(fallbackProfile) ? fallbackProfile : null;
+    } catch {
+      return null;
+    }
+  }, [companyId, session]);
+
   const loadBillingData = useCallback(
     async (options?: { showSuccessToast?: boolean }) => {
       if (!companyId) {
@@ -529,23 +646,41 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
       try {
         setBillingError(null);
 
-        const [
-          applicationStatisticsResponse,
-          summaryResponse,
-          paymentsResponse,
-          invoicesResponse,
-          plansResponse,
-          companyJobsResponse,
-          companyProfileResponse,
-        ] = await Promise.all([
-          getCompanyApplicationStatistics(companyId),
-          getCompanyBillingSummary(companyId),
-          getCompanyPayments(companyId),
-          getCompanyInvoices(companyId),
-          getPlans(),
-          getCompanyJobs(companyId),
-          getCompanyProfile(companyId),
-        ]);
+        const runDashboardRequests = async () =>
+          Promise.allSettled([
+            getCompanyApplicationStatistics(companyId),
+            getCompanyBillingSummary(companyId),
+            getCompanyPayments(companyId),
+            getCompanyInvoices(companyId),
+            getPlans(),
+            getCompanyJobs(companyId),
+            resolveCompanyProfile(),
+          ] as const);
+
+        let results = await runDashboardRequests();
+
+        if (results.some((result) => result.status === "rejected" && isTransientFetchError(result.reason))) {
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          results = await runDashboardRequests();
+        }
+
+        const applicationStatisticsResponse =
+          results[0].status === "fulfilled" ? results[0].value : null;
+        const summaryResponse = results[1].status === "fulfilled" ? results[1].value : null;
+        const paymentsResponse = results[2].status === "fulfilled" ? results[2].value : [];
+        const invoicesResponse = results[3].status === "fulfilled" ? results[3].value : [];
+        const plansResponse = results[4].status === "fulfilled" ? results[4].value : [];
+        const companyJobsResponse = results[5].status === "fulfilled" ? results[5].value : [];
+        const companyProfileResponse =
+          results[6].status === "fulfilled" ? results[6].value : null;
+
+        const failedRequests = results.filter((result) => result.status === "rejected");
+        const criticalFailure =
+          !companyProfileResponse &&
+          !summaryResponse &&
+          !applicationStatisticsResponse &&
+          plansResponse.length === 0 &&
+          companyJobsResponse.length === 0;
 
         setApplicationStatistics(applicationStatisticsResponse);
         setBillingSummary(summaryResponse);
@@ -562,6 +697,22 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
             description: "El estado del plan, pagos e invoices ya viene del backend real.",
           });
         }
+
+        if (criticalFailure) {
+          const firstError = failedRequests[0];
+          const message =
+            firstError?.status === "rejected" && firstError.reason instanceof Error
+              ? firstError.reason.message
+              : "No se pudo cargar la informacion del dashboard empresarial.";
+
+          setBillingError(message);
+          if (options?.showSuccessToast) {
+            showToast({
+              title: "Error de sincronizacion",
+              description: message,
+            });
+          }
+        }
       } catch (error) {
         const message =
           error instanceof Error
@@ -569,16 +720,18 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
             : "No se pudo cargar la informacion de facturacion.";
 
         setBillingError(message);
-        showToast({
-          title: "Error de sincronizacion",
-          description: message,
-        });
+        if (options?.showSuccessToast) {
+          showToast({
+            title: "Error de sincronizacion",
+            description: message,
+          });
+        }
       } finally {
         setIsBillingLoading(false);
         setIsRefreshing(false);
       }
     },
-    [companyId, showToast],
+    [companyId, resolveCompanyProfile, showToast],
   );
 
   useEffect(() => {
@@ -590,6 +743,13 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
 
     void loadBillingData();
   }, [companyId, loadBillingData]);
+
+  useEffect(() => {
+    if (!isBillingLoading && !hasNotifiedInitialReady.current) {
+      hasNotifiedInitialReady.current = true;
+      onInitialReady?.();
+    }
+  }, [isBillingLoading, onInitialReady]);
 
   useEffect(() => {
     const billingState = searchParams.get("billing");
@@ -667,8 +827,29 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
 
   const handleCancelCompanyProfileEdit = useCallback(() => {
     setCompanyProfileForm(createCompanyProfileForm(companyProfile));
+    setCompanyLogoFile(null);
     setIsEditingCompanyProfile(false);
   }, [companyProfile]);
+
+  const handleStartCompanyProfileEdit = useCallback(async () => {
+    const nextProfile = hasCompanyProfileData(companyProfile)
+      ? companyProfile
+      : await resolveCompanyProfile();
+
+    if (!nextProfile) {
+      showToast({
+        title: "No se pudo cargar el perfil",
+        description:
+          "Todavia no fue posible recuperar los datos de la empresa. Reintenta en unos segundos.",
+      });
+      return;
+    }
+
+    setCompanyProfile(nextProfile);
+    setCompanyProfileForm(createCompanyProfileForm(nextProfile));
+    setCompanyLogoFile(null);
+    setIsEditingCompanyProfile(true);
+  }, [companyProfile, resolveCompanyProfile, showToast]);
 
   const handleSaveCompanyProfile = useCallback(async () => {
     if (!companyId) {
@@ -707,22 +888,33 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
       }
 
       const response = await updateCompanyProfile(companyId, payload);
-      setCompanyProfile(response);
-      setCompanyProfileForm(createCompanyProfileForm(response));
+      let nextProfile = response;
+
+      if (companyLogoFile) {
+        await uploadCompanyLogo(companyId, companyLogoFile);
+        const refreshedProfile = await resolveCompanyProfile();
+        nextProfile = refreshedProfile ?? response;
+      }
+
+      setCompanyProfile(nextProfile);
+      setCompanyProfileForm(createCompanyProfileForm(nextProfile));
+      setCompanyLogoFile(null);
       setIsEditingCompanyProfile(false);
       showToast({
         title: "Perfil actualizado",
-        description: "Los datos de la empresa ya quedaron guardados.",
+        description: companyLogoFile
+          ? "Los datos de la empresa y el logo ya quedaron guardados."
+          : "Los datos de la empresa ya quedaron guardados.",
       });
     } catch (error) {
       showToast({
         title: "No se pudo actualizar",
-        description: error instanceof Error ? error.message : "No se pudieron guardar los datos de la empresa.",
+        description: formatCompanyProfileSaveError(error),
       });
     } finally {
       setIsSavingCompanyProfile(false);
     }
-  }, [companyId, companyProfileForm, showToast]);
+  }, [companyId, companyLogoFile, companyProfileForm, resolveCompanyProfile, showToast]);
 
   const buildJobPayload = useCallback((formData: FormData) => {
     const minimumYearsExperienceRaw = String(
@@ -1266,10 +1458,7 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
             ) : canEditCompanyProfile ? (
               <Button
                 variant="outline"
-                onClick={() => {
-                  setCompanyProfileForm(createCompanyProfileForm(companyProfile));
-                  setIsEditingCompanyProfile(true);
-                }}
+                onClick={() => void handleStartCompanyProfileEdit()}
               >
                 Editar datos
               </Button>
@@ -1277,68 +1466,113 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {companyProfile ? (
-            isEditingCompanyProfile ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Razon social</label>
-                  <Input value={companyProfileForm.name} onChange={(event) => handleCompanyProfileFieldChange("name", event.target.value)} />
+          {isEditingCompanyProfile ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="md:col-span-2 rounded-[1.25rem] border border-dashed border-border/70 bg-background/60 p-4">
+                <label className="mb-3 block text-sm font-medium">Logo corporativo</label>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-20 w-full max-w-[180px] items-center justify-center rounded-2xl border border-border/70 bg-card px-4">
+                      {companyProfile?.company.logoPath ? (
+                        <img
+                          src={`/api/companies/${companyId}/logo`}
+                          alt={`Logo de ${companyProfile.company.commercialName || companyProfile.company.name || "la empresa"}`}
+                          className="max-h-14 w-auto max-w-[150px] object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Aun sin logo</span>
+                      )}
+                    </div>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <p>PNG, JPG o WEBP de hasta 2 MB.</p>
+                      <p>Recomendado: logo horizontal de 600 x 240 px.</p>
+                      <p>Si subes uno nuevo, reemplazara al anterior automaticamente.</p>
+                    </div>
+                  </div>
+                  <Input
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.webp"
+                    className="max-w-sm"
+                    onChange={(event) => setCompanyLogoFile(event.target.files?.[0] ?? null)}
+                  />
                 </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Nombre comercial</label>
-                  <Input value={companyProfileForm.commercialName} onChange={(event) => handleCompanyProfileFieldChange("commercialName", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">RUC</label>
-                  <Input value={companyProfileForm.taxId} onChange={(event) => handleCompanyProfileFieldChange("taxId", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Industria</label>
-                  <Input value={companyProfileForm.industry} onChange={(event) => handleCompanyProfileFieldChange("industry", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Ciudad</label>
-                  <Input value={companyProfileForm.city} onChange={(event) => handleCompanyProfileFieldChange("city", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Pais</label>
-                  <Input value={companyProfileForm.country} onChange={(event) => handleCompanyProfileFieldChange("country", event.target.value)} />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium">Direccion</label>
-                  <Input value={companyProfileForm.address} onChange={(event) => handleCompanyProfileFieldChange("address", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Sitio web</label>
-                  <Input value={companyProfileForm.website} onChange={(event) => handleCompanyProfileFieldChange("website", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Correo de facturacion</label>
-                  <Input type="email" value={companyProfileForm.billingEmail} onChange={(event) => handleCompanyProfileFieldChange("billingEmail", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Nombre responsable</label>
-                  <Input value={companyProfileForm.firstName} onChange={(event) => handleCompanyProfileFieldChange("firstName", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Apellido responsable</label>
-                  <Input value={companyProfileForm.lastName} onChange={(event) => handleCompanyProfileFieldChange("lastName", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Cargo responsable</label>
-                  <Input value={companyProfileForm.contactPosition} onChange={(event) => handleCompanyProfileFieldChange("contactPosition", event.target.value)} />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Telefono responsable</label>
-                  <Input value={companyProfileForm.phone} onChange={(event) => handleCompanyProfileFieldChange("phone", event.target.value)} />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium">Correo de acceso</label>
-                  <Input value={companyProfile.user?.email ?? session?.email ?? ""} disabled />
-                </div>
+                {companyLogoFile ? (
+                  <p className="mt-3 text-sm text-foreground">Logo seleccionado: {companyLogoFile.name}</p>
+                ) : null}
               </div>
-            ) : (
+              <div>
+                <label className="mb-2 block text-sm font-medium">Razon social</label>
+                <Input value={companyProfileForm.name} onChange={(event) => handleCompanyProfileFieldChange("name", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Nombre comercial</label>
+                <Input value={companyProfileForm.commercialName} onChange={(event) => handleCompanyProfileFieldChange("commercialName", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">RUC</label>
+                <Input value={companyProfileForm.taxId} onChange={(event) => handleCompanyProfileFieldChange("taxId", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Industria</label>
+                <Input value={companyProfileForm.industry} onChange={(event) => handleCompanyProfileFieldChange("industry", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Ciudad</label>
+                <Input value={companyProfileForm.city} onChange={(event) => handleCompanyProfileFieldChange("city", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Pais</label>
+                <Input value={companyProfileForm.country} onChange={(event) => handleCompanyProfileFieldChange("country", event.target.value)} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium">Direccion</label>
+                <Input value={companyProfileForm.address} onChange={(event) => handleCompanyProfileFieldChange("address", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Sitio web</label>
+                <Input value={companyProfileForm.website} onChange={(event) => handleCompanyProfileFieldChange("website", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Correo de facturacion</label>
+                <Input type="email" value={companyProfileForm.billingEmail} onChange={(event) => handleCompanyProfileFieldChange("billingEmail", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Nombre responsable</label>
+                <Input value={companyProfileForm.firstName} onChange={(event) => handleCompanyProfileFieldChange("firstName", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Apellido responsable</label>
+                <Input value={companyProfileForm.lastName} onChange={(event) => handleCompanyProfileFieldChange("lastName", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Cargo responsable</label>
+                <Input value={companyProfileForm.contactPosition} onChange={(event) => handleCompanyProfileFieldChange("contactPosition", event.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Telefono responsable</label>
+                <Input value={companyProfileForm.phone} onChange={(event) => handleCompanyProfileFieldChange("phone", event.target.value)} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium">Correo de acceso</label>
+                <Input value={companyProfile?.user?.email ?? session?.email ?? ""} disabled />
+              </div>
+            </div>
+          ) : companyProfile ? (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4 xl:col-span-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Logo corporativo</p>
+                  <div className="mt-3 flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card px-5">
+                    {companyProfile.company.logoPath ? (
+                      <img
+                        src={`/api/companies/${companyId}/logo`}
+                        alt={`Logo de ${companyProfile.company.commercialName || companyProfile.company.name}`}
+                        className="max-h-14 w-auto max-w-[160px] object-contain"
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Aun no has cargado el logo de la empresa.</p>
+                    )}
+                  </div>
+                </div>
                 <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Razon social</p>
                   <p className="mt-2 font-medium">{companyProfile.company.name}</p>
@@ -1378,7 +1612,6 @@ export function CompanyDashboardClient({ session }: CompanyDashboardClientProps)
                   <p className="mt-1 text-sm text-muted-foreground">{companyProfile.user?.email || session?.email || "Sin correo"}</p>
                 </div>
               </div>
-            )
           ) : (
             <EmptyState
               title="Perfil pendiente"

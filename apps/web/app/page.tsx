@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { CompanyLogoCarousel } from "@/components/marketing/company-logo-carousel";
+import { PublicJobsShowcase } from "@/components/marketing/public-jobs-showcase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -171,6 +173,9 @@ export default function HomePage() {
           })}
         </div>
       </section>
+
+      <CompanyLogoCarousel />
+      <PublicJobsShowcase />
 
       <section id="quienes-somos" className="mt-12 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
         <Card className="border-border/70 bg-card/90 text-card-foreground shadow-[0_16px_36px_rgba(33,29,8,0.05)]">
