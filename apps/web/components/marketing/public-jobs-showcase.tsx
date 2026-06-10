@@ -242,14 +242,15 @@ export function PublicJobsShowcase() {
       ) : null}
 
       {detailJob ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/35 px-4 py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-foreground/35 px-4 py-6 backdrop-blur-sm">
           <div
             className="absolute inset-0"
             aria-hidden="true"
             onClick={() => setDetailJob(null)}
           />
-          <Card className="relative z-10 w-full max-w-3xl rounded-[1.75rem] border-border/70 bg-card shadow-[0_20px_50px_rgba(15,23,42,0.2)]">
-            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div className="relative z-10 flex min-h-full items-center justify-center">
+            <Card className="my-auto flex max-h-[calc(100vh-3rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.75rem] border-border/70 bg-card shadow-[0_20px_50px_rgba(15,23,42,0.2)]">
+            <CardHeader className="flex shrink-0 flex-row items-start justify-between gap-4 space-y-0 border-b border-border/60 bg-card">
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                   Detalle de vacante
@@ -268,7 +269,7 @@ export function PublicJobsShowcase() {
                 <X className="size-5" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-5 overflow-y-auto p-6">
               <div className="grid gap-3 rounded-[1.25rem] border border-border/70 bg-background/60 p-4 text-sm text-muted-foreground sm:grid-cols-2">
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
@@ -364,7 +365,8 @@ export function PublicJobsShowcase() {
                 </Button>
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       ) : null}
     </>
