@@ -9,6 +9,8 @@ type CarouselLogoItem = {
   company: PublicCompanyLogo;
 };
 
+const minimumTrackItems = 10;
+
 export function CompanyLogoCarousel() {
   const [logos, setLogos] = useState<PublicCompanyLogo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,15 +41,25 @@ export function CompanyLogoCarousel() {
   }, []);
 
   const loopedLogos = useMemo<CarouselLogoItem[]>(() => {
-    return logos.length > 1
-      ? [...logos, ...logos].map((company, index) => ({
-          instanceKey: `${company.id}-${index}`,
-          company,
-        }))
-      : logos.map((company) => ({
-          instanceKey: company.id,
-          company,
-        }));
+    if (logos.length <= 1) {
+      return logos.map((company) => ({
+        instanceKey: company.id,
+        company,
+      }));
+    }
+
+    const repeatCount = Math.max(1, Math.ceil(minimumTrackItems / logos.length));
+    const baseTrack = Array.from({ length: repeatCount }, (_, repeatIndex) =>
+      logos.map((company) => ({
+        instanceKey: `${company.id}-base-${repeatIndex}`,
+        company,
+      })),
+    ).flat();
+
+    return [...baseTrack, ...baseTrack].map((item, index) => ({
+      instanceKey: `${item.instanceKey}-${index}`,
+      company: item.company,
+    }));
   }, [logos]);
 
   if (isLoading || logos.length === 0) {
