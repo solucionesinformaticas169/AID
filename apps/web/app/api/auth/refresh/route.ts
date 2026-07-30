@@ -44,7 +44,7 @@ export async function POST() {
 
     return NextResponse.json(
       {
-        message: error instanceof Error ? error.message : "No se pudo renovar la sesion.",
+        message: error instanceof Error ? error.message : "No se pudo renovar la sesión.",
       },
       { status: 401 },
     );

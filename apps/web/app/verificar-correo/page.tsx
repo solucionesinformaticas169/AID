@@ -54,7 +54,7 @@ export default function VerifyEmailPage() {
           <p className="text-sm text-muted-foreground">{message}</p>
           <div className="flex gap-3">
             <Button asChild>
-              <Link href="/login">{status === "success" ? "Ir a iniciar sesion" : "Volver al login"}</Link>
+              <Link href="/login">{status === "success" ? "Ir a iniciar sesión" : "Volver al login"}</Link>
             </Button>
             {status === "error" ? (
               <Button asChild variant="outline">

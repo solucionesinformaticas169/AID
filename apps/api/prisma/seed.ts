@@ -61,7 +61,7 @@ async function main() {
     {
       code: PlanCode.PROFESSIONAL,
       name: "Profesional",
-      description: "Mas visibilidad, metricas y candidatos destacados.",
+      description: "Más visibilidad, métricas y candidatos destacados.",
       price: 49,
       durationMonths: 1,
       jobPostLimit: 25,

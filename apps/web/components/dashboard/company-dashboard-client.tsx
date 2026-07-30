@@ -148,7 +148,7 @@ function formatStatus(status: string) {
 function formatApplicationStatus(status: string) {
   const labels: Record<string, string> = {
     APPLIED: "Enviado",
-    REVIEWING: "En revision",
+    REVIEWING: "En revisión",
     SHORTLISTED: "Preseleccionado",
     INTERVIEW: "Entrevista",
     REJECTED: "Rechazado",
@@ -242,7 +242,7 @@ function formatCompanyProfileSaveError(error: unknown) {
   }
 
   if (/file too large/i.test(error.message)) {
-    return "El logo supera el tamano maximo permitido de 2 MB.";
+    return "El logo supera el tamaño máximo permitido de 2 MB.";
   }
 
   return error.message;
@@ -313,7 +313,7 @@ function CandidateResumeView({ applicant }: { applicant: CompanyJobApplicant }) 
             <p><span className="font-medium">Nombre:</span> {applicant.candidate.name}</p>
             <p><span className="font-medium">Correo:</span> {applicant.candidate.email}</p>
             <p><span className="font-medium">Ciudad:</span> {applicant.candidate.resume.city || "Sin ciudad"}</p>
-            <p><span className="font-medium">Pais:</span> {applicant.candidate.resume.country || "Sin pais"}</p>
+            <p><span className="font-medium">País:</span> {applicant.candidate.resume.country || "Sin país"}</p>
             <p><span className="font-medium">Progreso del perfil:</span> {applicant.candidate.resume.profileCompletion}%</p>
           </CardContent>
         </Card>
@@ -324,7 +324,7 @@ function CandidateResumeView({ applicant }: { applicant: CompanyJobApplicant }) 
           <CardContent className="space-y-2 text-sm">
             <p><span className="font-medium">Documento:</span> {personalInfo.documentNumber || "Sin dato"}</p>
             <p><span className="font-medium">Telefono:</span> {personalInfo.mobilePhone || "Sin dato"}</p>
-            <p><span className="font-medium">Direccion:</span> {personalInfo.mainStreet || "Sin dato"}</p>
+            <p><span className="font-medium">Dirección:</span> {personalInfo.mainStreet || "Sin dato"}</p>
             <p><span className="font-medium">Provincia:</span> {personalInfo.province || "Sin dato"}</p>
             <p><span className="font-medium">Canton:</span> {personalInfo.canton || "Sin dato"}</p>
           </CardContent>
@@ -466,7 +466,7 @@ function JobApplicantsModalContent({
     return (
       <EmptyState
         title="Sin postulantes para esta vacante"
-        description={`La vacante ${jobTitle} todavia no registra candidatos postulados.`}
+        description={`La vacante ${jobTitle} todavía no registra candidatos postulados.`}
         icon={<BriefcaseBusiness className="size-6" />}
       />
     );
@@ -637,7 +637,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
   const loadBillingData = useCallback(
     async (options?: { showSuccessToast?: boolean }) => {
       if (!companyId) {
-        setBillingError("No hay una empresa asociada a la sesion actual.");
+        setBillingError("No hay una empresa asociada a la sesión actual.");
         setIsBillingLoading(false);
         setIsRefreshing(false);
         return;
@@ -703,7 +703,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
           const message =
             firstError?.status === "rejected" && firstError.reason instanceof Error
               ? firstError.reason.message
-              : "No se pudo cargar la informacion del dashboard empresarial.";
+              : "No se pudo cargar la información del dashboard empresarial.";
 
           setBillingError(message);
           if (options?.showSuccessToast) {
@@ -717,7 +717,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
         const message =
           error instanceof Error
             ? error.message
-            : "No se pudo cargar la informacion de facturacion.";
+            : "No se pudo cargar la información de facturación.";
 
         setBillingError(message);
         if (options?.showSuccessToast) {
@@ -737,7 +737,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
   useEffect(() => {
     if (!companyId) {
       setIsBillingLoading(false);
-      setBillingError("Configura un companyId en la sesion o en NEXT_PUBLIC_DEMO_COMPANY_ID.");
+      setBillingError("Configura un companyId en la sesión o en NEXT_PUBLIC_DEMO_COMPANY_ID.");
       return;
     }
 
@@ -796,7 +796,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
           description:
             error instanceof Error
               ? error.message
-              : "PayPhone no pudo confirmar la transaccion.",
+              : "PayPhone no pudo confirmar la transacción.",
         });
       } finally {
         if (isActive) {
@@ -840,7 +840,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
       showToast({
         title: "No se pudo cargar el perfil",
         description:
-          "Todavia no fue posible recuperar los datos de la empresa. Reintenta en unos segundos.",
+          "Todavía no fue posible recuperar los datos de la empresa. Reintenta en unos segundos.",
       });
       return;
     }
@@ -855,7 +855,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
     if (!companyId) {
       showToast({
         title: "Empresa no disponible",
-        description: "No se encontro una empresa vinculada para actualizar el perfil.",
+        description: "No se encontró una empresa vinculada para actualizar el perfil.",
       });
       return;
     }
@@ -1048,7 +1048,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
         });
         showToast({
           title: "Estado actualizado",
-          description: `La postulacion paso a ${formatApplicationStatus(status)}.`,
+          description: `La postulación pasó a ${formatApplicationStatus(status)}.`,
         });
         setIsRefreshing(true);
         void loadBillingData();
@@ -1058,7 +1058,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
           description:
             error instanceof Error
               ? error.message
-              : "No se pudo cambiar el estado de la postulacion.",
+              : "No se pudo cambiar el estado de la postulación.",
         });
       }
     },
@@ -1109,7 +1109,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
     (applicant: CompanyJobApplicant) => {
       openModal({
         title: `Hoja de vida de ${applicant.candidate.name}`,
-        description: "Resumen estructurado con la informacion que el candidato registro en el sistema.",
+        description: "Resumen estructurado con la información que el candidato registró en el sistema.",
         content: <CandidateResumeView applicant={applicant} />,
       });
     },
@@ -1328,7 +1328,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                 <Input
                   name="billingAddress"
                   required
-                  placeholder="Ingresa la direccion de facturacion"
+                  placeholder="Ingresa la dirección de facturación"
                 />
               </div>
               <div>
@@ -1349,7 +1349,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">Codigo de pais</label>
+                <label className="mb-2 block text-sm font-medium">Código de país</label>
                 <Input
                   name="payerCountryCode"
                   required
@@ -1393,7 +1393,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
     return (
       <EmptyState
         title="Empresa no configurada"
-        description="La sesion actual no trae companyId. Vincula una empresa al usuario o define NEXT_PUBLIC_DEMO_COMPANY_ID para el entorno demo."
+        description="La sesión actual no trae companyId. Vincula una empresa al usuario o define NEXT_PUBLIC_DEMO_COMPANY_ID para el entorno demo."
         icon={<ShieldAlert className="size-6" />}
       />
     );
@@ -1420,7 +1420,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
         <StatCard
           label="Vacantes publicadas"
           value={String(planStatus?.publishedJobsCount ?? 0)}
-          helper="Conteo real segun el plan y publicaciones activas."
+          helper="Conteo real según el plan y publicaciones activas."
           icon={<BriefcaseBusiness className="size-5" />}
         />
         <StatCard
@@ -1480,7 +1480,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                           className="max-h-14 w-auto max-w-[150px] object-contain"
                         />
                       ) : (
-                        <span className="text-xs text-muted-foreground">Aun sin logo</span>
+                        <span className="text-xs text-muted-foreground">Aún sin logo</span>
                       )}
                     </div>
                     <div className="space-y-1 text-sm text-muted-foreground">
@@ -1569,7 +1569,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                         className="max-h-14 w-auto max-w-[160px] object-contain"
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">Aun no has cargado el logo de la empresa.</p>
+                      <p className="text-sm text-muted-foreground">Aún no has cargado el logo de la empresa.</p>
                     )}
                   </div>
                 </div>
@@ -1591,7 +1591,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                 </div>
                 <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Direccion</p>
-                  <p className="mt-2 font-medium">{companyProfile.company.address || "Sin direccion"}</p>
+                  <p className="mt-2 font-medium">{companyProfile.company.address || "Sin dirección"}</p>
                 </div>
                 <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Sitio web</p>
@@ -1608,14 +1608,14 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                 <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Cargo y contacto</p>
                   <p className="mt-2 font-medium">{companyProfile.company.contactPosition || "Sin cargo"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{companyProfile.user?.phone || "Sin telefono"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{companyProfile.user?.phone || "Sin teléfono"}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{companyProfile.user?.email || session?.email || "Sin correo"}</p>
                 </div>
               </div>
           ) : (
             <EmptyState
               title="Perfil pendiente"
-              description="Todavia no se pudo cargar la informacion principal de la empresa."
+              description="Todavía no se pudo cargar la información principal de la empresa."
               icon={<BriefcaseBusiness className="size-6" />}
               action={
                 <Button variant="outline" onClick={triggerRefresh}>
@@ -1706,7 +1706,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                           <Input name="closesAt" type="datetime-local" />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="mb-2 block text-sm font-medium">Descripcion</label>
+                          <label className="mb-2 block text-sm font-medium">Descripción</label>
                           <Textarea
                             name="description"
                             required
@@ -1803,7 +1803,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                   {
                     key: "experience",
                     label: "Experiencia",
-                    render: (row) => <span>{row.minimumYearsExperience} anos</span>,
+                    render: (row) => <span>{row.minimumYearsExperience} años</span>,
                   },
                   {
                     key: "applicants",
@@ -1830,7 +1830,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                           onClick={() =>
                             openModal({
                               title: "Editar vacante",
-                              description: "Actualiza la informacion principal de esta vacante.",
+                              description: "Actualiza la información principal de esta vacante.",
                               content: (
                                 <form
                                   className="grid gap-4"
@@ -1906,7 +1906,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                                       />
                                     </div>
                                     <div className="md:col-span-2">
-                                      <label className="mb-2 block text-sm font-medium">Descripcion</label>
+                                      <label className="mb-2 block text-sm font-medium">Descripción</label>
                                       <Textarea
                                         name="description"
                                         required
@@ -2003,7 +2003,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
             {filteredVacancies.length > 0 ? (
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {filteredVacancies.length} registros - pagina {currentVacanciesPage} de {totalVacanciesPages}
+                  {filteredVacancies.length} registros - página {currentVacanciesPage} de {totalVacanciesPages}
                 </p>
                 <div className="flex w-full gap-2 sm:w-auto">
                   <Button
@@ -2130,7 +2130,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
                   <div className="mt-4 space-y-2 text-sm text-muted-foreground">
                     <p>Limite: {plan.jobPostLimit === null ? "Ilimitadas" : `${plan.jobPostLimit} vacantes`}</p>
                     <p>Prioridad: {plan.priorityPublication ? "Si" : "No"}</p>
-                    <p>Metricas: {plan.advancedMetrics ? "Avanzadas" : "Basicas"}</p>
+                    <p>Métricas: {plan.advancedMetrics ? "Avanzadas" : "Básicas"}</p>
                     <p>Candidatos destacados: {plan.featuredCandidates ? "Si" : "No"}</p>
                   </div>
                   <Button
@@ -2166,7 +2166,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
               ) : payments.length === 0 ? (
                 <EmptyState
                   title="Sin pagos registrados"
-                  description="Todavia no hay cobros asociados a esta empresa en la capa SaaS."
+                  description="Todavía no hay cobros asociados a esta empresa en la capa SaaS."
                   icon={<CreditCard className="size-6" />}
                 />
               ) : (
@@ -2210,7 +2210,7 @@ export function CompanyDashboardClient({ session, onInitialReady }: CompanyDashb
               ) : invoices.length === 0 ? (
                 <EmptyState
                   title="Sin facturas emitidas"
-                  description="Las facturas apareceran aqui cuando exista una suscripcion o un pago confirmado."
+                  description="Las facturas aparecerán aquí cuando exista una suscripción o un pago confirmado."
                   icon={<FileText className="size-6" />}
                 />
               ) : (

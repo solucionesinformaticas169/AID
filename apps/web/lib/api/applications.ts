@@ -138,7 +138,7 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const message = Array.isArray(payload.message)
       ? payload.message.join(". ")
-      : payload.message ?? "No se pudo completar la operacion.";
+      : payload.message ?? "No se pudo completar la operación.";
 
     throw new Error(message);
   }

@@ -34,7 +34,7 @@ export default function ResetPasswordPage() {
       const payload = (await response.json()) as { message?: string };
 
       if (!response.ok) {
-        throw new Error(payload.message ?? "No se pudo restablecer la contrasena.");
+        throw new Error(payload.message ?? "No se pudo restablecer la contraseña.");
       }
 
       setMessage(payload.message ?? "Contrasena actualizada correctamente. Redirigiendo al login...");
@@ -44,7 +44,7 @@ export default function ResetPasswordPage() {
       }, 1200);
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : "No se pudo restablecer la contrasena.",
+        submitError instanceof Error ? submitError.message : "No se pudo restablecer la contraseña.",
       );
     } finally {
       setIsSubmitting(false);
@@ -55,7 +55,7 @@ export default function ResetPasswordPage() {
     <main className="mx-auto flex max-w-xl px-6 py-14">
       <Card className="w-full border-border/70 bg-white/90">
         <CardHeader>
-          <CardTitle>Restablecer contrasena</CardTitle>
+          <CardTitle>Restablecer contraseña</CardTitle>
         </CardHeader>
         <CardContent>
           {!token ? (
@@ -70,18 +70,18 @@ export default function ResetPasswordPage() {
           ) : (
             <form className="space-y-4" onSubmit={handleSubmit}>
               <p className="text-sm text-muted-foreground">
-                Define tu nueva contrasena antes de que el enlace temporal caduque.
+                Define tu nueva contraseña antes de que el enlace temporal caduque.
               </p>
               <Input
                 type="password"
-                placeholder="Nueva contrasena"
+                placeholder="Nueva contraseña"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
                 required
                 minLength={6}
               />
               <Button className="w-full" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Actualizando..." : "Guardar contrasena"}
+                {isSubmitting ? "Actualizando..." : "Guardar contraseña"}
               </Button>
               {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
               {error ? <p className="text-sm text-destructive">{error}</p> : null}

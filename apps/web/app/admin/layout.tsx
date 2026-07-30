@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <AdminSidebarShell
       title="Panel del AdministradorSistema"
-      description="Centro de control de AIDLABORAL para gobierno operativo, auditoria, seguridad y monetizacion."
+      description="Centro de control de AIDLABORAL para gobierno operativo, auditoría, seguridad y monetización."
       user={session}
     >
       {children}

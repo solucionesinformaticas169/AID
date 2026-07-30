@@ -40,8 +40,8 @@ function formatCurrency(value: string | number, currency: string) {
 function getPlanHighlights(plan: PublicPlan) {
   return [
     plan.jobPostLimit === null ? "Vacantes ilimitadas" : `${plan.jobPostLimit} vacantes activas`,
-    plan.priorityPublication ? "Prioridad en publicacion" : "Publicacion estandar",
-    plan.advancedMetrics ? "Metricas empresariales avanzadas" : "Metricas operativas basicas",
+    plan.priorityPublication ? "Prioridad en publicación" : "Publicación estándar",
+    plan.advancedMetrics ? "Métricas empresariales avanzadas" : "Métricas operativas básicas",
     plan.featuredCandidates ? "Candidatos destacados" : "Flujo ATS esencial",
   ];
 }
@@ -126,7 +126,7 @@ export default async function CompaniesAccessPage() {
                     Planes empresariales
                   </CardTitle>
                   <CardDescription>
-                    Compara capacidades y elige el nivel SaaS ideal para tu operacion de reclutamiento.
+                    Compara capacidades y elige el nivel SaaS ideal para tu operación de reclutamiento.
                   </CardDescription>
                 </div>
                 <Badge variant="secondary" className="hidden sm:inline-flex">
@@ -137,7 +137,7 @@ export default async function CompaniesAccessPage() {
             <CardContent>
               {plans.length === 0 ? (
                 <div className="rounded-[1.5rem] border border-dashed border-border/70 bg-background/50 p-6 text-sm text-muted-foreground">
-                  El catalogo de planes aun no esta disponible. Puedes continuar con el acceso o registro empresarial.
+                  El catálogo de planes aún no está disponible. Puedes continuar con el acceso o registro empresarial.
                 </div>
               ) : (
                 <div className="grid gap-4 lg:grid-cols-3">

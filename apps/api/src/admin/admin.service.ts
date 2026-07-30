@@ -124,7 +124,7 @@ export class AdminService {
 
     if (!session || session.userId !== userId) {
       return {
-        message: "La sesion solicitada no existe para este usuario.",
+        message: "La sesión solicitada no existe para este usuario.",
       };
     }
 
@@ -137,7 +137,7 @@ export class AdminService {
     });
 
     return {
-      message: "Sesion revocada correctamente.",
+      message: "Sesión revocada correctamente.",
     };
   }
 

@@ -264,7 +264,7 @@ export class SupabaseStorageService {
 
     if (file.size > maxBytes) {
       throw new BadRequestException(
-        `El archivo supera el tamano maximo permitido de ${effectiveMaxSizeMb} MB.`,
+        `El archivo supera el tamaño máximo permitido de ${effectiveMaxSizeMb} MB.`,
       );
     }
   }
@@ -296,7 +296,7 @@ export class SupabaseStorageService {
     }
 
     if (file.size > maxBytes) {
-      throw new BadRequestException("El logo supera el tamano maximo permitido de 2 MB.");
+      throw new BadRequestException("El logo supera el tamaño máximo permitido de 2 MB.");
     }
   }
 

@@ -34,7 +34,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         message:
           error instanceof Error
             ? error.message
-            : "No se pudo actualizar el estado de la postulacion.",
+            : "No se pudo actualizar el estado de la postulación.",
       },
       { status: 400 },
     );

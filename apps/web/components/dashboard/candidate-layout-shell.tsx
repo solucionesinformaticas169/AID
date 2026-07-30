@@ -31,7 +31,7 @@ export function CandidateLayoutShell({
         isOpportunitiesPage
           ? "Encuentra oportunidades afines a tu perfil."
           : isResumePage
-            ? "Completa tu hoja de vida y organiza tu informacion profesional por secciones."
+            ? "Completa tu hoja de vida y organiza tu información profesional por secciones."
             : "Gestiona tu perfil profesional, documentos y postulaciones desde una vista protegida."
       }
       roleLabel="Candidato"

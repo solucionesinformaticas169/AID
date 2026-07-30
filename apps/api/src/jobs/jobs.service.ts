@@ -347,7 +347,7 @@ export class JobsService {
     minimumYearsExperience: number;
   }) {
     if (job.status === JobOfferStatus.PAUSED) {
-      return "Ajustes solicitados por administracion";
+      return "Ajustes solicitados por administración";
     }
 
     if (!job.salaryMin && !job.salaryMax) {
@@ -359,7 +359,7 @@ export class JobsService {
     }
 
     if (Array.isArray(job.requiredLanguages) && job.requiredLanguages.length > 0) {
-      return "Verificacion de idiomas requeridos";
+      return "Verificación de idiomas requeridos";
     }
 
     if (job.minimumYearsExperience > 5) {
@@ -394,7 +394,7 @@ export class JobsService {
     const endDate = closesAt ? new Date(closesAt) : null;
 
     if (startDate && Number.isNaN(startDate.getTime())) {
-      throw new BadRequestException("La fecha de inicio de publicacion no es valida.");
+      throw new BadRequestException("La fecha de inicio de publicación no es válida.");
     }
 
     if (endDate && Number.isNaN(endDate.getTime())) {

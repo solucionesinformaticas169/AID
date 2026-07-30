@@ -115,7 +115,7 @@ export class ApplicationsRepository {
           create: {
             status: JobApplicationStatus.APPLIED,
             title: "Enviado",
-            description: "La postulacion fue registrada correctamente.",
+            description: "La postulación fue registrada correctamente.",
           },
         },
       },
@@ -282,7 +282,7 @@ export class ApplicationsRepository {
   private getTimelineTitle(status: JobApplicationStatus) {
     const titles: Record<JobApplicationStatus, string> = {
       APPLIED: "Enviado",
-      REVIEWING: "En revision",
+      REVIEWING: "En revisión",
       SHORTLISTED: "Preseleccionado",
       INTERVIEW: "Entrevista",
       REJECTED: "Rechazado",

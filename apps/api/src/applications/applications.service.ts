@@ -33,7 +33,7 @@ export class ApplicationsService {
     const candidateProfile = await this.applicationsRepository.findCandidateProfileByUserId(user.sub);
 
     if (!candidateProfile) {
-      throw new NotFoundException("No se encontro un perfil de candidato para este usuario.");
+      throw new NotFoundException("No se encontró un perfil de candidato para este usuario.");
     }
 
     const [jobOffer, hydratedCandidateProfile] = await Promise.all([
@@ -256,7 +256,7 @@ export class ApplicationsService {
       const hasMembership = await this.applicationsRepository.userHasCompanyAccess(user.sub, companyId);
 
       if (!hasMembership || user.companyId !== companyId) {
-        throw new ForbiddenException("No tienes acceso a estadisticas de otra empresa.");
+        throw new ForbiddenException("No tienes acceso a estadísticas de otra empresa.");
       }
     }
 

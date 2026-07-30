@@ -28,7 +28,7 @@ export async function GET(
         message:
           error instanceof Error
             ? error.message
-            : "No se pudieron cargar las estadisticas de postulaciones.",
+            : "No se pudieron cargar las estadísticas de postulaciones.",
       },
       { status: 400 },
     );

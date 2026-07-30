@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       {
-        message: error instanceof Error ? error.message : "No se pudo iniciar sesion.",
+        message: error instanceof Error ? error.message : "No se pudo iniciar sesión.",
       },
       { status: 401 },
     );

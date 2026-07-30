@@ -157,7 +157,7 @@ function ResourceSection<T>({
         )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            {filteredRows.length} registros - pagina {currentPage} de {totalPages}
+            {filteredRows.length} registros - página {currentPage} de {totalPages}
           </p>
           <div className="flex w-full gap-2 sm:w-auto">
             <Button
@@ -225,7 +225,7 @@ function formatJobStatus(status: AdminConsoleJob["status"]) {
 function formatApplicationStatus(status: AdminConsoleApplication["status"]) {
   const labels: Record<AdminConsoleApplication["status"], string> = {
     APPLIED: "Enviado",
-    REVIEWING: "En revision",
+    REVIEWING: "En revisión",
     SHORTLISTED: "Preseleccionado",
     INTERVIEW: "Entrevista",
     REJECTED: "Rechazado",
@@ -278,7 +278,7 @@ function ConfigurationCard({ label, enabled }: { label: string; enabled: boolean
         <Badge variant="secondary">{enabled ? "Activo" : "Pendiente"}</Badge>
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
-        {enabled ? "Configuracion detectada en el entorno actual." : "Todavia requiere variables o activacion final."}
+        {enabled ? "Configuración detectada en el entorno actual." : "Todavía requiere variables o activación final."}
       </p>
     </div>
   );
@@ -439,7 +439,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
             <Badge variant="secondary" className="mb-3">Centro operativo</Badge>
             <h2 className="text-3xl font-semibold">Vista ejecutiva de AIDLABORAL</h2>
             <p className="mt-2 max-w-3xl text-muted-foreground">
-              Consola administrativa con foco en operacion, seguridad, monetizacion y trazabilidad. Cada modulo usa datos reales del backend cuando ya existen endpoints.
+              Consola administrativa con foco en operación, seguridad, monetización y trazabilidad. Cada módulo usa datos reales del backend cuando ya existen endpoints.
             </p>
           </div>
           <Button className="w-full sm:w-auto" variant="outline" onClick={() => void loadConsole({ notifyOnError: true })}>
@@ -514,7 +514,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           },
         ]}
         emptyTitle="No hay usuarios para este filtro"
-        emptyDescription="Cuando existan usuarios registrados o ajustes el filtro de busqueda, apareceran aqui."
+        emptyDescription="Cuando existan usuarios registrados o ajustes el filtro de búsqueda, aparecerán aquí."
       />
 
       <ResourceSection<AdminConsoleCompany>
@@ -564,7 +564,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
             render: (row) => (
               <div className="space-y-1 text-sm">
                 <p>RUC: {row.taxId || "Sin RUC"}</p>
-                <p>Direccion: {row.address || "Sin direccion"}</p>
+                <p>Dirección: {row.address || "Sin dirección"}</p>
                 <p>Sector: {row.industry || "Sin sector"}</p>
                 <p>Cargo responsable: {row.contactPosition || "Sin cargo"}</p>
                 <p>Facturacion: {row.billingEmail || "Sin correo"}</p>
@@ -602,13 +602,13 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           },
         ]}
         emptyTitle="No hay empresas registradas"
-        emptyDescription="Las nuevas empresas aprobadas o pendientes apareceran en esta vista."
+        emptyDescription="Las nuevas empresas aprobadas o pendientes aparecerán en esta vista."
       />
 
       <ResourceSection<AdminConsoleJob>
         id="a-vacantes"
         title="Vacantes"
-        description="Inventario de vacantes con su estado de moderacion, publicacion y traccion de postulaciones."
+        description="Inventario de vacantes con su estado de moderación, publicación y tracción de postulaciones."
         rows={data.jobs}
         filters={["Todos", "Publicada", "Borrador", "Pausada", "Cerrada"]}
         defaultFilter="Todos"
@@ -642,12 +642,12 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           },
           {
             key: "publishedAt",
-            label: "Publicacion",
+            label: "Publicación",
             render: (row) => formatDate(row.publishedAt ?? row.createdAt),
           },
         ]}
         emptyTitle="No hay vacantes disponibles"
-        emptyDescription="Cuando se creen o moderen vacantes, podras administrarlas desde este bloque."
+        emptyDescription="Cuando se creen o moderen vacantes, podrás administrarlas desde este bloque."
       />
 
       <ResourceSection<AdminConsoleApplication>
@@ -655,7 +655,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
         title="Postulaciones"
         description="Seguimiento integral del pipeline de candidatos, compatibilidad y estado del proceso."
         rows={data.applications}
-        filters={["Todos", "Enviado", "En revision", "Preseleccionado", "Entrevista", "Rechazado", "Contratado"]}
+        filters={["Todos", "Enviado", "En revisión", "Preseleccionado", "Entrevista", "Rechazado", "Contratado"]}
         defaultFilter="Todos"
         searchPlaceholder="Buscar candidato, vacante o empresa"
         getFilterValue={(row) => formatApplicationStatus(row.status)}
@@ -697,13 +697,13 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           },
         ]}
         emptyTitle="No hay postulaciones registradas"
-        emptyDescription="Las aplicaciones reales apareceran aqui con su estado y compatibilidad."
+        emptyDescription="Las aplicaciones reales aparecerán aquí con su estado y compatibilidad."
       />
 
       <ResourceSection<AdminConsolePayment>
         id="a-pagos"
         title="Pagos y suscripciones"
-        description="Cobros, proveedores de pago y contexto del plan asociado a cada transaccion."
+        description="Cobros, proveedores de pago y contexto del plan asociado a cada transacción."
         rows={data.payments}
         filters={["Todos", "Pagado", "Pendiente", "Fallido", "Reembolsado"]}
         defaultFilter="Todos"
@@ -742,7 +742,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           },
         ]}
         emptyTitle="No hay pagos conciliados"
-        emptyDescription="A medida que existan transacciones, esta tabla mostrara proveedores, planes y estados."
+        emptyDescription="A medida que existan transacciones, esta tabla mostrará proveedores, planes y estados."
       />
 
       <ResourceSection<AdminConsoleInvoice>
@@ -787,13 +787,13 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           },
         ]}
         emptyTitle="No hay facturas en el sistema"
-        emptyDescription="Cuando la capa de billing genere facturas, podras administrarlas desde este modulo."
+        emptyDescription="Cuando la capa de billing genere facturas, podrás administrarlas desde este módulo."
       />
 
       <ResourceSection<AdminConsoleDocument>
         id="a-documentos"
         title="Documentos"
-        description="Inventario de archivos privados cargados por candidatos y disponibles para auditoria administrativa."
+        description="Inventario de archivos privados cargados por candidatos y disponibles para auditoría administrativa."
         rows={data.documents}
         filters={["Todos", "Hoja de vida", "Identificacion", "Certificado", "Licencia", "Otro"]}
         defaultFilter="Todos"
@@ -832,27 +832,27 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           },
         ]}
         emptyTitle="No hay documentos cargados"
-        emptyDescription="Los documentos de candidatos apareceran aqui cuando el modulo de storage tenga actividad."
+        emptyDescription="Los documentos de candidatos aparecerán aquí cuando el módulo de storage tenga actividad."
       />
 
       {superAdmin ? (
       <Card id="a-auditoria" className="scroll-mt-24 rounded-[1.75rem] border-border/70 bg-card/90">
         <CardHeader className="flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-xl">Auditoria</CardTitle>
+            <CardTitle className="text-xl">Auditoría</CardTitle>
             <p className="mt-2 text-sm text-muted-foreground">
-              Vista previa de eventos recientes. Para filtros avanzados entra a la pagina dedicada.
+              Vista previa de eventos recientes. Para filtros avanzados entra a la página dedicada.
             </p>
           </div>
           <Button variant="outline" asChild>
-            <a href="/admin/auditoria">Abrir auditoria completa</a>
+            <a href="/admin/auditoria">Abrir auditoría completa</a>
           </Button>
         </CardHeader>
         <CardContent>
           {data.auditPreview.length === 0 ? (
             <EmptyState
-              title="Sin eventos de auditoria"
-              description="Los eventos criticos del sistema se mostraran aqui en cuanto existan acciones registradas."
+              title="Sin eventos de auditoría"
+              description="Los eventos críticos del sistema se mostrarán aquí en cuanto existan acciones registradas."
               icon={<Shield className="size-5" />}
             />
           ) : (
@@ -929,7 +929,7 @@ export function AdminDashboardClient({ user }: { user: SessionUser | null }) {
           },
         ]}
         emptyTitle="Sin alertas abiertas"
-        emptyDescription="Cuando existan bloqueos, reuso de tokens o hallazgos relevantes, apareceran aqui."
+        emptyDescription="Cuando existan bloqueos, reuso de tokens o hallazgos relevantes, aparecerán aquí."
       />
       ) : null}
 

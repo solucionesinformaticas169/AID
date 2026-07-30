@@ -103,7 +103,7 @@ export class AuthService {
 
     return {
       message: isCompanyAdminRegistration
-        ? "Cuenta empresarial creada correctamente. Ya puedes iniciar sesion."
+        ? "Cuenta empresarial creada correctamente. Ya puedes iniciar sesión."
         : "Usuario registrado correctamente. Revisa tu correo para verificar la cuenta.",
       user: this.serializeUser(
         user.id,
@@ -250,7 +250,7 @@ export class AuthService {
       const sessionId = decoded.sid;
 
       if (!sessionId) {
-        throw new UnauthorizedException("Refresh token sin sesion asociada.");
+        throw new UnauthorizedException("Refresh token sin sesión asociada.");
       }
 
       const session = await this.authRepository.findSessionById(sessionId);
@@ -260,7 +260,7 @@ export class AuthService {
       }
 
       if (session.revokedAt || session.expiresAt <= new Date()) {
-        throw new UnauthorizedException("La sesion ya no esta activa.");
+        throw new UnauthorizedException("La sesión ya no está activa.");
       }
 
       const refreshTokenMatches = await compare(payload.refreshToken, session.refreshTokenHash);
@@ -332,7 +332,7 @@ export class AuthService {
         throw error;
       }
 
-      throw new UnauthorizedException("No se pudo renovar la sesion.");
+      throw new UnauthorizedException("No se pudo renovar la sesión.");
     }
   }
 
@@ -383,7 +383,7 @@ export class AuthService {
     );
 
     if (!token) {
-      throw new BadRequestException("El token para restablecer contrasena no es valido o ya expiro.");
+      throw new BadRequestException("El token para restablecer contraseña no es válido o ya expiró.");
     }
 
     const passwordHash = await hash(payload.newPassword, 10);
@@ -402,7 +402,7 @@ export class AuthService {
 
   async logout(user: AuthenticatedUser, payload: LogoutDto) {
     if (!user.sessionId) {
-      throw new UnauthorizedException("La sesion activa no pudo resolverse.");
+      throw new UnauthorizedException("La sesión activa no pudo resolverse.");
     }
 
     const session = await this.authRepository.findSessionById(user.sessionId);
@@ -417,7 +417,7 @@ export class AuthService {
       : false;
 
     if (!currentMatches && !previousMatches) {
-      throw new UnauthorizedException("Refresh token no coincide con la sesion activa.");
+      throw new UnauthorizedException("Refresh token no coincide con la sesión activa.");
     }
 
     await this.authRepository.revokeSession(user.sessionId, "USER_LOGOUT");
@@ -453,12 +453,12 @@ export class AuthService {
     const session = await this.authRepository.findSessionById(sessionId);
 
     if (!session || session.userId !== user.sub) {
-      throw new NotFoundException("La sesion solicitada no existe.");
+      throw new NotFoundException("La sesión solicitada no existe.");
     }
 
     await this.authRepository.revokeSession(sessionId, "USER_REVOKED_SESSION");
     return {
-      message: "Sesion revocada correctamente.",
+      message: "Sesión revocada correctamente.",
     };
   }
 
@@ -566,7 +566,7 @@ export class AuthService {
     }
 
     if (!payload.country) {
-      throw new BadRequestException("El pais es obligatorio.");
+      throw new BadRequestException("El país es obligatorio.");
     }
 
     if (!payload.contactPosition) {

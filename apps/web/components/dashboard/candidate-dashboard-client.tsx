@@ -189,7 +189,7 @@ export function CandidateDashboardClient() {
       setIsLoading(false);
       showToast({
         title: "Panel actualizado",
-        description: "La informacion del candidato fue recargada correctamente.",
+        description: "La información del candidato fue recargada correctamente.",
       });
     });
   };
@@ -354,7 +354,7 @@ export function CandidateDashboardClient() {
                 <div className="flex flex-col gap-3 rounded-[1.25rem] border border-input bg-background/70 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
-                      {selectedFile ? selectedFile.name : "No se ha seleccionado ningun archivo"}
+                      {selectedFile ? selectedFile.name : "No se ha seleccionado ningún archivo"}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Formatos permitidos segun el tipo documental.
@@ -414,7 +414,7 @@ export function CandidateDashboardClient() {
               />
             ) : documents.length === 0 ? (
               <EmptyState
-                title="Aun no has cargado documentos"
+                title="Aún no has cargado documentos"
                 description="Sube tu CV, certificados y documentos personales para completar tu perfil."
                 icon={<FileCheck2 className="size-6" />}
               />
@@ -513,12 +513,12 @@ export function CandidateDashboardClient() {
               <EmptyState
                 title={
                   applications.length === 0
-                    ? "Aun no has realizado postulaciones"
+                    ? "Aún no has realizado postulaciones"
                     : "No hay postulaciones con ese filtro"
                 }
                 description={
                   applications.length === 0
-                    ? "Cuando postules a una vacante, aqui veras el seguimiento de tu proceso."
+                    ? "Cuando postules a una vacante, aquí verás el seguimiento de tu proceso."
                     : "No hay registros disponibles para mostrar en este momento."
                 }
                 icon={<BriefcaseBusiness className="size-6" />}
@@ -598,7 +598,7 @@ export function CandidateDashboardClient() {
             ) : filteredApplications.length === 0 ? (
               <EmptyState
                 title="Sin timeline disponible"
-                description="Cuando existan postulaciones activas, aqui veras cada avance de tu proceso."
+                description="Cuando existan postulaciones activas, aquí verás cada avance de tu proceso."
                 icon={<BriefcaseBusiness className="size-6" />}
               />
             ) : (
@@ -636,7 +636,7 @@ export function CandidateDashboardClient() {
             {!isApplicationsLoading && filteredApplications.length > 0 ? (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {filteredApplications.length} registros - pagina {currentTimelinePage} de {totalTimelinePages}
+                  {filteredApplications.length} registros - página {currentTimelinePage} de {totalTimelinePages}
                 </p>
                 <div className="flex w-full gap-2 sm:w-auto">
                   <Button
@@ -670,7 +670,7 @@ export function CandidateDashboardClient() {
 function formatApplicationStatus(status: string) {
   const labels: Record<string, string> = {
     APPLIED: "Enviado",
-    REVIEWING: "En revision",
+    REVIEWING: "En revisión",
     SHORTLISTED: "Preseleccionado",
     INTERVIEW: "Entrevista",
     REJECTED: "Rechazado",

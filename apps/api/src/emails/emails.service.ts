@@ -80,7 +80,7 @@ export class EmailsService {
       userId: input.userId,
       templateKind: EmailTemplateKind.PASSWORD_RESET,
       recipientEmail: input.recipientEmail,
-      subject: "Recupera tu contrasena en AIDLABORAL",
+      subject: "Recupera tu contraseña en AIDLABORAL",
       html: renderPasswordResetTemplate({
         name: input.name,
         resetUrl: input.resetUrl,

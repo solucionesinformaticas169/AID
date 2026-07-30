@@ -49,7 +49,7 @@ export function renderVerificationTemplate(input: VerificationTemplateInput) {
     title: "Activa tu cuenta en AIDLABORAL",
     intro: `Hola ${input.name}, ya casi esta lista tu cuenta.`,
     bodyHtml:
-      "<p>Confirma tu correo para proteger tu acceso, recuperar tu contrasena y recibir notificaciones del ATS.</p>",
+      "<p>Confirma tu correo para proteger tu acceso, recuperar tu contraseña y recibir notificaciones del ATS.</p>",
     ctaLabel: "Verificar correo",
     ctaUrl: input.verificationUrl,
     footer: "Si no creaste esta cuenta, puedes ignorar este mensaje.",
@@ -58,13 +58,13 @@ export function renderVerificationTemplate(input: VerificationTemplateInput) {
 
 export function renderPasswordResetTemplate(input: PasswordResetTemplateInput) {
   return renderEmailLayout({
-    previewText: "Restablece tu contrasena de AIDLABORAL",
+    previewText: "Restablece tu contraseña de AIDLABORAL",
     eyebrow: "Seguridad de cuenta",
     title: "Recupera el acceso a tu cuenta",
-    intro: `Hola ${input.name}, recibimos una solicitud para restablecer tu contrasena.`,
+    intro: `Hola ${input.name}, recibimos una solicitud para restablecer tu contraseña.`,
     bodyHtml:
-      `<p>Usa el siguiente enlace seguro para definir una nueva contrasena. Por seguridad, el enlace expira en ${input.expiresInMinutes} minutos.</p>`,
-    ctaLabel: "Restablecer contrasena",
+      `<p>Usa el siguiente enlace seguro para definir una nueva contraseña. Por seguridad, el enlace expira en ${input.expiresInMinutes} minutos.</p>`,
+    ctaLabel: "Restablecer contraseña",
     ctaUrl: input.resetUrl,
     footer: "Si no solicitaste este cambio, te recomendamos revisar la seguridad de tu correo.",
   });
@@ -72,10 +72,10 @@ export function renderPasswordResetTemplate(input: PasswordResetTemplateInput) {
 
 export function renderApplicationSubmittedTemplate(input: ApplicationSubmittedTemplateInput) {
   return renderEmailLayout({
-    previewText: `Tu postulacion a ${input.jobTitle} fue registrada`,
+    previewText: `Tu postulación a ${input.jobTitle} fue registrada`,
     eyebrow: "Postulacion registrada",
     title: "Tu candidatura ya esta en proceso",
-    intro: `Hola ${input.candidateName}, tu postulacion a ${input.jobTitle} fue enviada a ${input.companyName}.`,
+    intro: `Hola ${input.candidateName}, tu postulación a ${input.jobTitle} fue enviada a ${input.companyName}.`,
     bodyHtml:
       "<p>Desde tu panel podras seguir el timeline, revisar compatibilidad ATS y estar al tanto de cualquier cambio de estado.</p>",
     ctaLabel: "Ver mis postulaciones",
@@ -87,11 +87,11 @@ export function renderNewApplicationTemplate(input: NewApplicationTemplateInput)
   return renderEmailLayout({
     previewText: `Nuevo candidato para ${input.jobTitle}`,
     eyebrow: "Nuevo postulante",
-    title: "Tienes una nueva postulacion",
+    title: "Tienes una nueva postulación",
     intro: `Hola ${input.recruiterName}, ${input.candidateName} acaba de postularse a ${input.jobTitle}.`,
     bodyHtml:
       "<p>Entra al dashboard para revisar compatibilidad, experiencia y timeline de la candidatura.</p>",
-    ctaLabel: "Revisar postulacion",
+    ctaLabel: "Revisar postulación",
     ctaUrl: input.dashboardUrl,
   });
 }

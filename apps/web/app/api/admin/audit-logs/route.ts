@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     return NextResponse.json(payload);
   } catch (error) {
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : "No se pudieron cargar los eventos de auditoria." },
+      { message: error instanceof Error ? error.message : "No se pudieron cargar los eventos de auditoría." },
       { status: 400 },
     );
   }

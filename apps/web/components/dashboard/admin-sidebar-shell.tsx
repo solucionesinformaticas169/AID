@@ -54,7 +54,7 @@ export function AdminSidebarShell({
     { href: "/admin#a-documentos", label: "Documentos", icon: FileText },
     ...(superAdmin
       ? [
-          { href: "/admin#a-auditoria", label: "Auditoria", icon: Shield },
+          { href: "/admin#a-auditoria", label: "Auditoría", icon: Shield },
           { href: "/admin#a-seguridad", label: "Seguridad", icon: Bell },
           { href: "/admin#a-configuracion", label: "Configuracion", icon: Settings2 },
         ]

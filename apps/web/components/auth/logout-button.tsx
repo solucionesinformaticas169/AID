@@ -29,13 +29,13 @@ export function LogoutButton({
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(payload?.message ?? "No se pudo cerrar la sesion.");
+        throw new Error(payload?.message ?? "No se pudo cerrar la sesión.");
       }
 
       window.location.replace("/login");
     } catch (error) {
       showToast({
-        title: "No se pudo cerrar la sesion",
+        title: "No se pudo cerrar la sesión",
         description: error instanceof Error ? error.message : "Error inesperado.",
       });
     } finally {
@@ -51,7 +51,7 @@ export function LogoutButton({
       onClick={() => void handleLogout()}
     >
       <LogOut className="mr-2 size-4" />
-      {isLoading ? "Cerrando..." : "Cerrar sesion"}
+      {isLoading ? "Cerrando..." : "Cerrar sesión"}
     </Button>
   );
 }

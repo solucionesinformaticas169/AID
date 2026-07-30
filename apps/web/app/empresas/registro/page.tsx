@@ -83,7 +83,7 @@ export default function CompanyRegisterPage() {
         }
       }
 
-      setSuccess("Empresa registrada. Ya puedes iniciar sesion.");
+      setSuccess("Empresa registrada. Ya puedes iniciar sesión.");
       window.setTimeout(() => {
         window.location.assign("/login");
       }, 1200);
@@ -108,7 +108,7 @@ export default function CompanyRegisterPage() {
       <div className="mb-8 space-y-2">
         <h2 className="text-3xl font-semibold">Registro empresarial</h2>
         <p className="text-muted-foreground">
-          Registra la cuenta principal y los datos base de tu empresa para iniciar el proceso de aprobacion.
+          Registra la cuenta principal y los datos base de tu empresa para iniciar el proceso de aprobación.
         </p>
       </div>
 

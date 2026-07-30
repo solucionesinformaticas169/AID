@@ -35,7 +35,7 @@ export default function LoginPage() {
       };
 
       if (!response.ok || !payload.user) {
-        throw new Error(payload.message ?? "No se pudo iniciar sesion.");
+        throw new Error(payload.message ?? "No se pudo iniciar sesión.");
       }
 
       const destinationMap: Record<string, string> = {
@@ -47,7 +47,7 @@ export default function LoginPage() {
 
       window.location.assign(destinationMap[payload.user.role] ?? "/");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "No se pudo iniciar sesion.");
+      setError(submitError instanceof Error ? submitError.message : "No se pudo iniciar sesión.");
     } finally {
       setIsSubmitting(false);
     }
@@ -78,11 +78,11 @@ export default function LoginPage() {
             />
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button className="w-full" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Iniciando..." : "Iniciar sesion"}
+              {isSubmitting ? "Iniciando..." : "Iniciar sesión"}
             </Button>
             <div className="flex justify-between text-sm">
               <Link className="text-primary underline-offset-4 hover:underline" href="/recuperar-clave">
-                Olvide mi contrasena
+                Olvidé mi contraseña
               </Link>
               <Link className="text-primary underline-offset-4 hover:underline" href="/registro">
                 Crear cuenta

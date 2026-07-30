@@ -76,7 +76,7 @@ export class PaymentsWebhooksService {
         headers: this.safeJsonValue(this.normalizeHeaders(headers)),
         processedAt: new Date(),
       });
-      this.logger.warn(`Stripe webhook rechazado por firma invalida: ${message}`);
+      this.logger.warn(`Stripe webhook rechazado por firma inválida: ${message}`);
       throw new BadRequestException(message);
     }
 
@@ -177,7 +177,7 @@ export class PaymentsWebhooksService {
     });
 
     if (!signatureValid) {
-      this.logger.warn(`PayPal webhook rechazado: firma invalida para evento ${eventType}.`);
+      this.logger.warn(`PayPal webhook rechazado: firma inválida para evento ${eventType}.`);
       throw new BadRequestException("Firma invalida para webhook de PayPal.");
     }
 
@@ -241,8 +241,8 @@ export class PaymentsWebhooksService {
     });
 
     if (!signatureValid) {
-      this.logger.warn(`PayPhone webhook rechazado: firma invalida para transaccion ${providerTransactionId ?? "sin-id"}.`);
-      throw new BadRequestException("Firma invalida para webhook de PayPhone.");
+      this.logger.warn(`PayPhone webhook rechazado: firma inválida para transacción ${providerTransactionId ?? "sin-id"}.`);
+      throw new BadRequestException("Firma inválida para webhook de PayPhone.");
     }
 
     try {
@@ -348,7 +348,7 @@ export class PaymentsWebhooksService {
         });
       }
       default:
-        return this.ignored(PaymentProvider.STRIPE, event.type, "Evento Stripe recibido sin accion de conciliacion.");
+        return this.ignored(PaymentProvider.STRIPE, event.type, "Evento Stripe recibido sin acción de conciliación.");
     }
   }
 
@@ -389,7 +389,7 @@ export class PaymentsWebhooksService {
       case "PAYMENT.SALE.REFUNDED":
         return this.markFailedPaymentFromWebhook(PaymentProvider.PAYPAL, eventType, payload);
       default:
-        return this.ignored(PaymentProvider.PAYPAL, eventType, "Evento PayPal recibido sin accion de conciliacion.");
+        return this.ignored(PaymentProvider.PAYPAL, eventType, "Evento PayPal recibido sin acción de conciliación.");
     }
   }
 
@@ -436,7 +436,7 @@ export class PaymentsWebhooksService {
       return this.duplicate(
         input.provider,
         input.eventType,
-        `La transaccion ${input.providerTransactionId} ya estaba conciliada.`,
+        `La transacción ${input.providerTransactionId} ya estaba conciliada.`,
       );
     }
 
@@ -459,7 +459,7 @@ export class PaymentsWebhooksService {
 
     if (!subscription) {
       throw new NotFoundException(
-        `No existe una suscripcion local para conciliar la transaccion ${input.providerTransactionId}.`,
+        `No existe una suscripción local para conciliar la transacción ${input.providerTransactionId}.`,
       );
     }
 
@@ -594,7 +594,7 @@ export class PaymentsWebhooksService {
       provider: input.provider,
       eventType: input.eventType,
       status: "processed",
-      message: `Renovacion aplicada automaticamente para la suscripcion ${subscription.id}.`,
+        message: `Renovación aplicada automáticamente para la suscripción ${subscription.id}.`,
     };
   }
 
@@ -615,11 +615,11 @@ export class PaymentsWebhooksService {
     const payment = await this.paymentsRepository.findPaymentByProviderTransaction(provider, transactionId);
 
     if (!payment) {
-      return this.ignored(provider, eventType, `No existe pago local para la transaccion ${transactionId}.`);
+      return this.ignored(provider, eventType, `No existe pago local para la transacción ${transactionId}.`);
     }
 
     if (payment.status === PaymentStatus.FAILED) {
-      return this.duplicate(provider, eventType, `La transaccion ${transactionId} ya estaba marcada como fallida.`);
+      return this.duplicate(provider, eventType, `La transacción ${transactionId} ya estaba marcada como fallida.`);
     }
 
     await this.paymentsRepository.markPaymentFailed({

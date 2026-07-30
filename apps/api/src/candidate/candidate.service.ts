@@ -244,7 +244,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findEducationRecordForUser(userId, educationId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro la instruccion formal seleccionada.");
+      throw new NotFoundException("No se encontró la instrucción formal seleccionada.");
     }
 
     const record = await this.candidateRepository.updateEducationRecord(educationId, {
@@ -267,7 +267,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findEducationRecordForUser(userId, educationId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro la instruccion formal seleccionada.");
+      throw new NotFoundException("No se encontró la instrucción formal seleccionada.");
     }
 
     await this.candidateRepository.deleteEducationRecord(educationId);
@@ -306,7 +306,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findExperienceRecordForUser(userId, experienceId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro la experiencia seleccionada.");
+      throw new NotFoundException("No se encontró la experiencia seleccionada.");
     }
 
     const record = await this.candidateRepository.updateExperienceRecord(experienceId, {
@@ -333,7 +333,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findExperienceRecordForUser(userId, experienceId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro la experiencia seleccionada.");
+      throw new NotFoundException("No se encontró la experiencia seleccionada.");
     }
 
     await this.candidateRepository.deleteExperienceRecord(experienceId);
@@ -364,7 +364,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findLanguageRecordForUser(userId, languageId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro el idioma seleccionado.");
+      throw new NotFoundException("No se encontró el idioma seleccionado.");
     }
 
     const record = await this.candidateRepository.updateLanguageRecord(languageId, {
@@ -383,7 +383,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findLanguageRecordForUser(userId, languageId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro el idioma seleccionado.");
+      throw new NotFoundException("No se encontró el idioma seleccionado.");
     }
 
     await this.candidateRepository.deleteLanguageRecord(languageId);
@@ -421,7 +421,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findTrainingRecordForUser(userId, trainingId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro la capacitacion seleccionada.");
+      throw new NotFoundException("No se encontró la capacitación seleccionada.");
     }
 
     const record = await this.candidateRepository.updateTrainingRecord(trainingId, {
@@ -447,7 +447,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findTrainingRecordForUser(userId, trainingId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro la capacitacion seleccionada.");
+      throw new NotFoundException("No se encontró la capacitación seleccionada.");
     }
 
     await this.candidateRepository.deleteTrainingRecord(trainingId);
@@ -484,7 +484,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findReferenceRecordForUser(userId, referenceId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro la referencia seleccionada.");
+      throw new NotFoundException("No se encontró la referencia seleccionada.");
     }
 
     const record = await this.candidateRepository.updateReferenceRecord(referenceId, {
@@ -504,7 +504,7 @@ export class CandidateService {
     const existing = await this.candidateRepository.findReferenceRecordForUser(userId, referenceId);
 
     if (!existing) {
-      throw new NotFoundException("No se encontro la referencia seleccionada.");
+      throw new NotFoundException("No se encontró la referencia seleccionada.");
     }
 
     const currentCount = await this.candidateRepository.countReferenceRecordsByUserId(userId);

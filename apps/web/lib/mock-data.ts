@@ -19,7 +19,7 @@ export const vacancies = [
     salary: "$1,500 - $2,200",
     type: "Tiempo completo",
     summary:
-      "Gestiona procesos especializados para perfiles de tecnologia y fortalece el pipeline comercial.",
+      "Gestiona procesos especializados para perfiles de tecnología y fortalece el pipeline comercial.",
   },
   {
     id: "vac-003",
@@ -68,9 +68,9 @@ export const candidateApplications = [
     id: "app-001",
     vacancyTitle: "Analista de Talento Humano",
     company: "AIDLABORAL S.A.S.",
-    status: "En revision",
+    status: "En revisión",
     compatibility: 92,
-    timeline: ["Aplicada", "En revision", "Preseleccionado"],
+    timeline: ["Aplicada", "En revisión", "Preseleccionado"],
   },
   {
     id: "app-002",
@@ -78,7 +78,7 @@ export const candidateApplications = [
     company: "AIDLABORAL S.A.S.",
     status: "Entrevista",
     compatibility: 88,
-    timeline: ["Aplicada", "En revision", "Preseleccionado", "Entrevista"],
+    timeline: ["Aplicada", "En revisión", "Preseleccionado", "Entrevista"],
   },
   {
     id: "app-003",
@@ -92,7 +92,7 @@ export const candidateApplications = [
 
 export const companyApplicationStats = [
   { status: "Aplicada", total: 18 },
-  { status: "En revision", total: 7 },
+  { status: "En revisión", total: 7 },
   { status: "Preseleccionado", total: 4 },
   { status: "Entrevista", total: 3 },
   { status: "Rechazado", total: 2 },
@@ -166,12 +166,12 @@ export const invoiceHistory = [
 ];
 
 export const siteMenu = [
-  { href: "/#quienes-somos", label: "Quienes somos" },
+  { href: "/#quienes-somos", label: "Quiénes somos" },
   { href: "/#objetivos", label: "Objetivos" },
   { href: "/#ciudadania", label: "Servicios a la ciudadania" },
   { href: "/#empleadores", label: "Servicios para empleadores" },
   { href: "/#ventajas", label: "Ventajas de trabajar con AIDLABORAL S.A.S" },
-  { href: "/#contacto", label: "Contactanos" },
+  { href: "/#contacto", label: "Contáctanos" },
 ];
 
 export const serviceBlocks = {
@@ -181,7 +181,7 @@ export const serviceBlocks = {
     "Postulacion a vacantes con seguimiento del proceso.",
   ],
   employers: [
-    "Publicacion y moderacion de vacantes.",
+    "Publicación y moderación de vacantes.",
     "Acceso a candidatos filtrados por perfil.",
     "Control de planes, cargas gratuitas y reclutadores.",
   ],

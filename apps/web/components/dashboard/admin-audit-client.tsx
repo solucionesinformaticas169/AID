@@ -49,7 +49,7 @@ export function AdminAuditClient({ user }: { user: SessionUser | null }) {
           <div>
             <h3 className="text-xl font-semibold">Modulo exclusivo de SuperAdmin</h3>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              Auditoria operativa, seguridad y configuracion avanzada solo estan disponibles para la cuenta superadmin.
+              Auditoría operativa, seguridad y configuración avanzada solo están disponibles para la cuenta superadmin.
             </p>
           </div>
         </CardContent>
@@ -139,7 +139,7 @@ export function AdminAuditClient({ user }: { user: SessionUser | null }) {
             <Shield className="size-5" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold">No se pudo cargar la auditoria</h3>
+            <h3 className="text-xl font-semibold">No se pudo cargar la auditoría</h3>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">{errorMessage}</p>
           </div>
           <Button variant="outline" onClick={() => void loadLogs({ notifyOnError: true })}>
@@ -155,9 +155,9 @@ export function AdminAuditClient({ user }: { user: SessionUser | null }) {
       <Card className="rounded-[1.75rem] border-border/70 bg-card/90">
         <CardHeader className="space-y-4">
           <div className="space-y-2">
-            <CardTitle className="text-2xl">Auditoria operacional</CardTitle>
+            <CardTitle className="text-2xl">Auditoría operacional</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Vista conectada a <code>GET /api/admin/audit-logs</code> con filtros por accion, fecha y busqueda libre.
+              Vista conectada a <code>GET /api/admin/audit-logs</code> con filtros por acción, fecha y búsqueda libre.
             </p>
           </div>
           <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto_auto] xl:items-center">
@@ -169,7 +169,7 @@ export function AdminAuditClient({ user }: { user: SessionUser | null }) {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                placeholder="Buscar por usuario, accion, entidad o IP"
+                placeholder="Buscar por usuario, acción, entidad o IP"
                 className="pl-9"
               />
             </div>
@@ -204,7 +204,7 @@ export function AdminAuditClient({ user }: { user: SessionUser | null }) {
           {paginatedLogs.length === 0 ? (
             <EmptyState
               title="No hay eventos para este filtro"
-              description="Ajusta las fechas, la accion o la busqueda para encontrar eventos de auditoria."
+              description="Ajusta las fechas, la acción o la búsqueda para encontrar eventos de auditoría."
               icon={<Shield className="size-5" />}
             />
           ) : (
@@ -259,7 +259,7 @@ export function AdminAuditClient({ user }: { user: SessionUser | null }) {
           )}
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              {filteredLogs.length} eventos - pagina {currentPage} de {totalPages}
+              {filteredLogs.length} eventos - página {currentPage} de {totalPages}
             </p>
             <div className="flex gap-2">
               <Button

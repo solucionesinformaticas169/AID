@@ -26,12 +26,12 @@ const highlights = [
   },
   {
     title: "Empresas",
-    description: "Gestion de vacantes, reclutadores y control de planes.",
+    description: "Gestión de vacantes, reclutadores y control de planes.",
     icon: Building2,
   },
   {
-    title: "Administracion",
-    description: "Gobierno de roles, metricas y supervision del marketplace.",
+    title: "Administración",
+    description: "Gobierno de roles, métricas y supervisión del marketplace.",
     icon: ShieldCheck,
   },
 ];
@@ -39,23 +39,23 @@ const highlights = [
 const goals = [
   "Impulsar la empleabilidad con procesos claros, cercanos y medibles.",
   "Conectar empresas con talento validado en menos tiempo.",
-  "Digitalizar reclutamiento, postulacion y gestion documental desde un solo lugar.",
+  "Digitalizar reclutamiento, postulación y gestión documental desde un solo lugar.",
 ];
 
 const advantages = [
   {
-    title: "Acompanamiento humano",
-    description: "La plataforma combina autoservicio digital con orientacion y soporte cercano.",
+    title: "Acompañamiento humano",
+    description: "La plataforma combina autoservicio digital con orientación y soporte cercano.",
     icon: Handshake,
   },
   {
     title: "Control de cumplimiento",
-    description: "Documentos, roles y vacantes quedan centralizados para auditoria y seguimiento.",
+    description: "Documentos, roles y vacantes quedan centralizados para auditoría y seguimiento.",
     icon: ShieldCheck,
   },
   {
     title: "Velocidad operativa",
-    description: "Empresas publican, filtran y avanzan sobre candidatos sin friccion innecesaria.",
+    description: "Empresas publican, filtran y avanzan sobre candidatos sin fricción innecesaria.",
     icon: BadgeCheck,
   },
 ];
@@ -86,7 +86,7 @@ export default function HomePage() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/login">Iniciar sesion</Link>
+              <Link href="/login">Iniciar sesión</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
               <Link href="/empresas">Publicar vacante</Link>
@@ -118,7 +118,7 @@ export default function HomePage() {
           {highlights.map(({ title, description, icon: Icon }) => {
             const isCandidateCard = title === "Candidatos";
             const isCompanyCard = title === "Empresas";
-            const isAdminCard = title === "Administracion";
+            const isAdminCard = title === "Administración";
             const cardContent = (
               <Card className="border-border/70 bg-gradient-to-br from-card via-card to-secondary/65 text-card-foreground shadow-[0_12px_30px_rgba(33,29,8,0.05)]">
                 <CardHeader className="flex-row items-center gap-4 space-y-0">
@@ -180,14 +180,14 @@ export default function HomePage() {
       <section id="quienes-somos" className="mt-12 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
         <Card className="border-border/70 bg-card/90 text-card-foreground shadow-[0_16px_36px_rgba(33,29,8,0.05)]">
           <CardHeader>
-            <CardTitle>Quienes somos</CardTitle>
+            <CardTitle>Quiénes somos</CardTitle>
             <CardDescription>
               AIDLABORAL S.A.S es una plataforma de talento humano enfocada en conectar personas y empleadores
-              con procesos mas claros, trazables y eficientes.
+              con procesos más claros, trazables y eficientes.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm leading-7 text-muted-foreground">
-            Integramos reclutamiento, publicacion de vacantes, documentos y seguimiento de postulaciones para
+            Integramos reclutamiento, publicación de vacantes, documentos y seguimiento de postulaciones para
             reducir tiempos de respuesta y mejorar la experiencia de candidatos, reclutadores y equipos
             administrativos.
           </CardContent>
@@ -216,7 +216,7 @@ export default function HomePage() {
       <section className="mt-12 grid gap-6 lg:grid-cols-2">
         <Card id="ciudadania" className="border-border/70 bg-card/90 text-card-foreground shadow-[0_16px_36px_rgba(33,29,8,0.05)]">
           <CardHeader>
-            <CardTitle>Servicios a la ciudadania</CardTitle>
+            <CardTitle>Servicios a la ciudadanía</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {serviceBlocks.citizen.map((item) => (
@@ -264,9 +264,9 @@ export default function HomePage() {
       <section id="contacto" className="mt-12">
         <Card className="border-border/70 bg-gradient-to-br from-card via-card to-accent/35 text-card-foreground shadow-[0_18px_40px_rgba(33,29,8,0.06)]">
           <CardHeader>
-            <CardTitle>Contactanos</CardTitle>
+            <CardTitle>Contáctanos</CardTitle>
             <CardDescription>
-              Estamos listos para apoyar procesos de seleccion, publicacion de vacantes y crecimiento laboral.
+              Estamos listos para apoyar procesos de selección, publicación de vacantes y crecimiento laboral.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -276,11 +276,11 @@ export default function HomePage() {
                 <p className="text-muted-foreground">ivangarate@icloud.com</p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
-                <p className="font-medium">Telefono</p>
+                <p className="font-medium">Teléfono</p>
                 <p className="text-muted-foreground">0962948533</p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
-                <p className="font-medium">Atencion</p>
+                <p className="font-medium">Atención</p>
                 <p className="text-muted-foreground">Lunes a viernes de 08:00 a 17:00</p>
               </div>
             </div>
@@ -294,7 +294,7 @@ export default function HomePage() {
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-2 font-medium text-foreground shadow-sm transition hover:border-primary/45 hover:bg-primary/15 hover:text-primary"
                 >
-                  Soluciones Informaticas
+                  Soluciones Informáticas
                   <ArrowUpRight className="size-4" />
                 </a>
                 <span className="hidden h-px flex-1 bg-gradient-to-l from-transparent via-primary/50 to-primary/80 sm:block" />

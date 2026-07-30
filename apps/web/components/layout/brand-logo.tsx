@@ -43,7 +43,7 @@ export function BrandLogo({ compact = false, className }: BrandLogoProps) {
       </div>
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">AIDLABORAL S.A.S.</p>
-        <p className="text-sm text-muted-foreground">Talento humano, reclutamiento y gestion empresarial.</p>
+        <p className="text-sm text-muted-foreground">Talento humano, reclutamiento y gestión empresarial.</p>
       </div>
     </div>
   );

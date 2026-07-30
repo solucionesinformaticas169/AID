@@ -29,7 +29,7 @@ export async function PATCH(_request: Request, context: RouteContext) {
     return NextResponse.json(payload);
   } catch (error) {
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : "No se pudo revocar la sesion." },
+      { message: error instanceof Error ? error.message : "No se pudo revocar la sesión." },
       { status: 400 },
     );
   }

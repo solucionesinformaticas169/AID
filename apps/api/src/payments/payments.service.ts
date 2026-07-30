@@ -175,7 +175,7 @@ export class PaymentsService {
 
     if (!subscription) {
       throw new NotFoundException(
-        `No existe una suscripcion local para la transaccion ${payload.clientTransactionId}.`,
+        `No existe una suscripción local para la transacción ${payload.clientTransactionId}.`,
       );
     }
 

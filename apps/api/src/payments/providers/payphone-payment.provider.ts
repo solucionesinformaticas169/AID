@@ -105,7 +105,7 @@ export class PayphonePaymentProvider {
       throw new InternalServerErrorException(
         typeof result.message === "string"
           ? result.message
-          : "No se pudo confirmar la transaccion con PayPhone.",
+          : "No se pudo confirmar la transacción con PayPhone.",
       );
     }
 
@@ -139,7 +139,7 @@ export class PayphonePaymentProvider {
     const token = this.configService.get<string>("PAYPHONE_TOKEN");
 
     if (!token) {
-      throw new InternalServerErrorException("PAYPHONE_TOKEN es obligatorio para consultar la transaccion.");
+      throw new InternalServerErrorException("PAYPHONE_TOKEN es obligatorio para consultar la transacción.");
     }
 
     const response = await fetch(`https://pay.payphonetodoesposible.com/api/Sale/${transactionId}`, {
@@ -151,7 +151,7 @@ export class PayphonePaymentProvider {
     });
 
     if (!response.ok) {
-      throw new InternalServerErrorException("No se pudo consultar la transaccion en PayPhone.");
+      throw new InternalServerErrorException("No se pudo consultar la transacción en PayPhone.");
     }
 
     return (await response.json()) as Record<string, unknown>;

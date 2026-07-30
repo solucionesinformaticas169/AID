@@ -122,7 +122,7 @@ export function Header() {
           </div>
 
           <Button asChild variant="ghost" size="sm">
-            <Link href="/#contacto">Contactanos</Link>
+            <Link href="/#contacto">Contáctanos</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
             <Link href="/registro">Registro</Link>
@@ -206,7 +206,7 @@ export function Header() {
               </div>
 
               <Button asChild variant="ghost" className="justify-start" onClick={() => setIsMobileMenuOpen(false)}>
-                <Link href="/#contacto">Contactanos</Link>
+                <Link href="/#contacto">Contáctanos</Link>
               </Button>
               <Button asChild variant="ghost" className="justify-start" onClick={() => setIsMobileMenuOpen(false)}>
                 <Link href="/registro">Registro</Link>

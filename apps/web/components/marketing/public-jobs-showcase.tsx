@@ -47,7 +47,7 @@ export function PublicJobsShowcase() {
           setError(
             fetchError instanceof Error
               ? fetchError.message
-              : "No se pudieron cargar las vacantes publicas.",
+              : "No se pudieron cargar las vacantes públicas.",
           );
         }
       } finally {
@@ -109,7 +109,7 @@ export function PublicJobsShowcase() {
   const detailSections = detailJob
     ? [
         {
-          title: "Descripcion",
+          title: "Descripción",
           content: detailJob.description,
         },
         {
@@ -161,11 +161,11 @@ export function PublicJobsShowcase() {
           />
         ) : paginatedJobs.length === 0 ? (
           <EmptyState
-            title={normalizedSearch ? "Sin resultados para tu busqueda" : "Sin vacantes publicadas"}
+            title={normalizedSearch ? "Sin resultados para tu búsqueda" : "Sin vacantes publicadas"}
             description={
               normalizedSearch
                 ? "Prueba con otro cargo, empresa o palabra clave para encontrar oportunidades."
-                : "Todavia no existen oportunidades activas en el portal."
+                : "Todavía no existen oportunidades activas en el portal."
             }
             icon={<BriefcaseBusiness className="size-6" />}
           />
@@ -217,7 +217,7 @@ export function PublicJobsShowcase() {
             {filteredJobs.length > publicJobsPageSize ? (
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {filteredJobs.length} registros - pagina {currentPage} de {totalPages}
+                  {filteredJobs.length} registros - página {currentPage} de {totalPages}
                 </p>
                 <div className="flex w-full gap-2 sm:w-auto">
                   <Button
@@ -260,7 +260,7 @@ export function PublicJobsShowcase() {
                 </p>
                 <CardTitle className="text-2xl">{activeJob.title}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Para continuar con la postulacion, ingresa con tu cuenta o registrate como candidato.
+                  Para continuar con la postulación, ingresa con tu cuenta o regístrate como candidato.
                 </p>
               </div>
               <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={() => setActiveJob(null)}>
@@ -274,10 +274,10 @@ export function PublicJobsShowcase() {
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="flex-1">
-                  <Link href="/login">Iniciar sesion</Link>
+                  <Link href="/login">Iniciar sesión</Link>
                 </Button>
                 <Button asChild variant="outline" className="flex-1">
-                  <Link href="/registro">Registrate</Link>
+                  <Link href="/registro">Regístrate</Link>
                 </Button>
               </div>
             </CardContent>
@@ -336,7 +336,7 @@ export function PublicJobsShowcase() {
                 {detailJob.requiredEducationLevel ? (
                   <div>
                     <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      Formacion
+                      Formación
                     </p>
                     <p className="mt-1 font-medium text-foreground">
                       {detailJob.requiredEducationLevel}
@@ -351,7 +351,7 @@ export function PublicJobsShowcase() {
                     </p>
                     <p className="mt-1 font-medium text-foreground">
                       {detailJob.minimumYearsExperience}{" "}
-                      {detailJob.minimumYearsExperience === 1 ? "ano" : "anos"}
+                      {detailJob.minimumYearsExperience === 1 ? "año" : "años"}
                     </p>
                   </div>
                 ) : null}
@@ -397,15 +397,15 @@ export function PublicJobsShowcase() {
               ) : null}
 
               <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4 text-sm text-muted-foreground">
-                Para continuar con la postulacion, inicia sesion con tu cuenta o registrate como candidato.
+                Para continuar con la postulación, inicia sesión con tu cuenta o regístrate como candidato.
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="flex-1">
-                  <Link href="/login">Iniciar sesion</Link>
+                  <Link href="/login">Iniciar sesión</Link>
                 </Button>
                 <Button asChild variant="outline" className="flex-1">
-                  <Link href="/registro">Registrate</Link>
+                  <Link href="/registro">Regístrate</Link>
                 </Button>
               </div>
             </CardContent>

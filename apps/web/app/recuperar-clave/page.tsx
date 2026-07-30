@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
     <main className="mx-auto flex max-w-xl px-6 py-14">
       <Card className="w-full border-border/70 bg-white/90">
         <CardHeader>
-          <CardTitle>Recuperar contrasena</CardTitle>
+          <CardTitle>Recuperar contraseña</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>

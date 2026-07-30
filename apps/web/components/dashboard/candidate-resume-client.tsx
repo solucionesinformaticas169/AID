@@ -209,7 +209,7 @@ type CandidateResumeResponse = {
 const MAX_CV_UPLOAD_MB = 2;
 
 const resumeSections: ResumeSection[] = [
-  { id: "informacion-personal", label: "Informacion personal", available: true },
+  { id: "informacion-personal", label: "Información personal", available: true },
   { id: "instruccion-formal", label: "Instruccion formal", available: true },
   { id: "idiomas", label: "Idiomas", available: true },
   { id: "capacitaciones", label: "Capacitaciones / Certificaciones", available: true },
@@ -221,7 +221,7 @@ const educationLevelOptions = [
   "Seleccione",
   "Sin instruccion",
   "Primaria / basica elemental / basica media",
-  "Educacion basica / basica superior",
+  "Educación básica / básica superior",
   "Bachiller",
   "Secundaria sin finalizar",
   "Certificado de culminacion de educacion superior",
@@ -258,8 +258,8 @@ const educationalInstitutionOptions = [
 ];
 
 const studyAreaOptions = [
-  "Administracion/oficina",
-  "Contabilidad y auditoria",
+  "Administración/oficina",
+  "Contabilidad y auditoría",
   "Informatica / sistemas",
   "Talento humano",
   "Educacion",
@@ -275,7 +275,7 @@ const languageOptions = [
   "Aleman",
   "Arabe",
   "Chino (mandarin)",
-  "Espanol",
+  "Español",
   "Frances",
   "Ingles",
   "Italiano",
@@ -363,7 +363,7 @@ const defaultFormData: PersonalInfoFormData = {
 const defaultEducationFormData: EducationFormData = {
   educationLevel: "Seleccione",
   institutionType: "Seleccione",
-  studyArea: "Administracion/oficina",
+  studyArea: "Administración/oficina",
   studyTimeValue: "1",
   studyTimeUnit: "Ano",
   graduationYear: "1900",
@@ -380,7 +380,7 @@ const defaultTrainingFormData: TrainingFormData = {
   institution: "",
   eventType: "Seleccione",
   eventName: "",
-  studyArea: "Administracion/oficina",
+  studyArea: "Administración/oficina",
   certificationType: "Seleccione",
   startDate: "",
   endDate: "",
@@ -746,7 +746,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
         });
 
         if (!response.ok) {
-          throw new Error("No se pudo cargar la informacion personal.");
+          throw new Error("No se pudo cargar la información personal.");
         }
 
         const payload = (await response.json()) as CandidateProfileResponse;
@@ -778,7 +778,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
 
         showToast({
           title: "Perfil local",
-          description: "Seguimos en modo local para informacion personal hasta completar la conexion.",
+          description: "Seguimos en modo local para información personal hasta completar la conexión.",
         });
       } finally {
         if (active) {
@@ -993,7 +993,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
         if (active) {
           showToast({
             title: "CV pendiente",
-            description: "Aun no se pudo sincronizar tu hoja de vida PDF desde documentos.",
+            description: "Aún no se pudo sincronizar tu hoja de vida PDF desde documentos.",
           });
         }
       }
@@ -1104,19 +1104,19 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
         const payload = (await response.json().catch(() => null)) as { message?: string | string[] } | null;
         const message = Array.isArray(payload?.message)
           ? payload.message.join(". ")
-          : payload?.message || "No se pudo guardar la informacion personal.";
+          : payload?.message || "No se pudo guardar la información personal.";
         throw new Error(message);
       }
 
       showToast({
-        title: "Informacion guardada",
-        description: "La informacion personal ya quedo guardada en tu perfil del candidato.",
+        title: "Información guardada",
+        description: "La información personal ya quedó guardada en tu perfil del candidato.",
       });
       await syncPersistedResumeCompletion();
     } catch (error) {
       showToast({
         title: "No se pudo guardar",
-        description: error instanceof Error ? error.message : "No se pudo guardar la informacion personal.",
+        description: error instanceof Error ? error.message : "No se pudo guardar la información personal.",
       });
     } finally {
       window.setTimeout(() => setIsSaving(false), 400);
@@ -1697,7 +1697,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
     if (selectedCvFile.size > MAX_CV_UPLOAD_MB * 1024 * 1024) {
       showToast({
         title: "Archivo demasiado grande",
-        description: `Para CV recomiendo y validamos un maximo de ${MAX_CV_UPLOAD_MB} MB.`,
+        description: `Para CV recomiendo y validamos un máximo de ${MAX_CV_UPLOAD_MB} MB.`,
       });
       return;
     }
@@ -1811,7 +1811,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
               <div class="card"><strong>Genero:</strong> ${sanitizeHtml(String(personalInfo.gender ?? "-"))}</div>
               <div class="card"><strong>Fecha de nacimiento:</strong> ${sanitizeHtml(formatDateLabel(String(personalInfo.birthDate ?? resume.profile?.birthDate ?? "")))}</div>
             </div>
-            <h2>Informacion personal</h2>
+            <h2>Información personal</h2>
             <p>${sanitizeHtml(String(personalInfo.mainStreet ?? "-"))} ${sanitizeHtml(String(personalInfo.number ?? ""))}, ${sanitizeHtml(String(personalInfo.secondaryStreet ?? ""))}. Sector: ${sanitizeHtml(String(personalInfo.sector ?? "-"))}.</p>
             <p>Disponibilidad para viajar: ${sanitizeHtml(String(personalInfo.willingToTravel ?? "-"))}. Entrevistas en linea: ${sanitizeHtml(String(personalInfo.onlineInterviews ?? "-"))}. Licencia: ${sanitizeHtml(String(personalInfo.driversLicense ?? "-"))} ${personalInfo.driversLicense === "SI" ? `(${sanitizeHtml(String(personalInfo.licenseType ?? ""))})` : ""}.</p>
             <h2>Instruccion formal</h2>
@@ -1891,7 +1891,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
 
   const currentTitle =
     activeSection === "informacion-personal"
-      ? "Informacion personal"
+      ? "Información personal"
       : activeSection === "instruccion-formal"
         ? "Instruccion formal"
         : activeSection === "idiomas"
@@ -1989,7 +1989,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
                   </p>
                   <p className="mt-2 text-3xl font-semibold text-foreground">{resumeCompletion}%</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    El avance considera informacion personal, secciones cargadas y CV propio en PDF.
+                    El avance considera información personal, secciones cargadas y CV propio en PDF.
                   </p>
                 </div>
                 <Button type="button" variant="outline" onClick={handleDownloadResumePdf}>
@@ -2012,7 +2012,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
                     Hoja de vida propia
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Sube tu CV en PDF. Recomendacion y validacion: maximo 3 MB.
+                    Sube tu CV en PDF. Recomendación y validación: máximo 3 MB.
                   </p>
                 </div>
                 {cvDocument ? (
@@ -2029,7 +2029,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
               <div className="mt-4 flex flex-col gap-3 rounded-[1.25rem] border border-input bg-background/70 p-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">
-                    {selectedCvFile ? selectedCvFile.name : cvDocument?.fileName ?? "No has seleccionado ningun PDF"}
+                    {selectedCvFile ? selectedCvFile.name : cvDocument?.fileName ?? "No has seleccionado ningún PDF"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Solo PDF, hasta 3 MB. Si ya tienes uno cargado, puedes reemplazarlo con una nueva version.
@@ -2082,7 +2082,7 @@ export function CandidateResumeClient({ user }: { user: SessionUser | null }) {
             <>
           {isLoadingProfile ? (
             <div className="rounded-2xl border border-border/70 bg-background/50 p-4 text-sm text-muted-foreground">
-              Cargando informacion personal...
+              Cargando información personal...
             </div>
           ) : null}
           <section className="space-y-4">

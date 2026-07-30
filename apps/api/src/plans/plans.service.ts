@@ -7,7 +7,7 @@ const PLAN_CATALOG = [
   {
     code: PlanCode.FREE,
     name: "Gratis",
-    description: "Ideal para iniciar con 10 publicaciones gratuitas y operacion basica.",
+    description: "Ideal para iniciar con 10 publicaciones gratuitas y operación básica.",
     price: 0,
     durationMonths: 0,
     jobPostLimit: 10,
@@ -20,7 +20,7 @@ const PLAN_CATALOG = [
   {
     code: PlanCode.PROFESSIONAL,
     name: "Profesional",
-    description: "Mas vacantes, prioridad en publicaciones y metricas empresariales.",
+    description: "Más vacantes, prioridad en publicaciones y métricas empresariales.",
     price: 49,
     durationMonths: 1,
     jobPostLimit: 25,
@@ -118,7 +118,7 @@ export class PlansService {
       canPublish,
       publicationRule:
         freePostsRemaining > 0
-          ? "La empresa aun puede publicar con sus cargas gratuitas."
+          ? "La empresa aún puede publicar con sus cargas gratuitas."
           : activeSubscription && !withinPlanLimit
             ? "La empresa tiene suscripcion activa, pero ya alcanzo el limite de vacantes de su plan."
           : activeSubscription

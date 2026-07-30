@@ -267,7 +267,7 @@ function CandidateAdvancedFiltersModal({
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Fecha publicacion desde</label>
+          <label className="text-sm font-medium">Fecha publicación desde</label>
           <Input
             type="date"
             value={draft.publishedFrom}
@@ -275,7 +275,7 @@ function CandidateAdvancedFiltersModal({
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Fecha publicacion hasta</label>
+          <label className="text-sm font-medium">Fecha publicación hasta</label>
           <Input
             type="date"
             value={draft.publishedTo}
@@ -345,7 +345,7 @@ function CandidateAdvancedFiltersModal({
           className="min-h-28 w-full rounded-2xl border border-input bg-background px-3 py-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
           value={draft.requirements}
           onChange={(event) => updateField("requirements", event.target.value)}
-          placeholder="Ej. inventarios, seleccion, Excel, conduccion, reclutamiento..."
+          placeholder="Ej. inventarios, selección, Excel, conducción, reclutamiento..."
         />
       </div>
 
@@ -485,7 +485,7 @@ function CandidateApplyModal({
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "No se pudo registrar la postulacion.",
+          : "No se pudo registrar la postulación.",
       );
     } finally {
       setIsSubmitting(false);
@@ -495,7 +495,7 @@ function CandidateApplyModal({
   return (
     <div className="space-y-5">
       <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4 text-sm text-muted-foreground">
-        Selecciona la informacion de tu hoja de vida que quieres usar para esta postulacion.
+        Selecciona la información de tu hoja de vida que quieres usar para esta postulación.
         Puedes continuar aunque alguna seccion todavia este vacia.
       </div>
 
@@ -513,7 +513,7 @@ function CandidateApplyModal({
         <div className="space-y-3 rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
           <p className="text-sm font-semibold text-primary">Estudios</p>
           {educationRecords.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aun no has registrado estudios.</p>
+            <p className="text-sm text-muted-foreground">Aún no has registrado estudios.</p>
           ) : (
             educationRecords.map((record) => (
               <label key={record.id} className="flex items-start gap-3 rounded-xl border border-border/70 p-3 text-sm">
@@ -537,7 +537,7 @@ function CandidateApplyModal({
         <div className="space-y-3 rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
           <p className="text-sm font-semibold text-primary">Experiencia</p>
           {experienceRecords.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aun no has registrado experiencia.</p>
+            <p className="text-sm text-muted-foreground">Aún no has registrado experiencia.</p>
           ) : (
             experienceRecords.map((record) => (
               <label key={record.id} className="flex items-start gap-3 rounded-xl border border-border/70 p-3 text-sm">
@@ -566,7 +566,7 @@ function CandidateApplyModal({
           <p className="text-sm font-semibold text-primary">Capacitaciones / certificaciones</p>
           {trainingRecords.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Aun no has registrado capacitaciones o certificaciones.
+              Aún no has registrado capacitaciones o certificaciones.
             </p>
           ) : (
             trainingRecords.map((record) => (
@@ -598,7 +598,7 @@ function CandidateApplyModal({
           <div>
             <p className="text-sm font-semibold text-primary">Vista previa de compatibilidad</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Puntuacion estimada antes de enviar tu postulacion.
+              Puntuación estimada antes de enviar tu postulación.
             </p>
           </div>
           <Badge variant={compatibilityPreview.score >= 100 ? "default" : "secondary"}>
@@ -619,7 +619,7 @@ function CandidateApplyModal({
             Experiencia minima:{" "}
             <span className="font-medium">
               {job.minimumYearsExperience && job.minimumYearsExperience > 0
-                ? `${job.minimumYearsExperience} anos`
+                ? `${job.minimumYearsExperience} años`
                 : "No aplica"}
             </span>
             <p className="mt-1 text-muted-foreground">
@@ -659,7 +659,7 @@ function CandidateApplyModal({
           Cancelar
         </Button>
         <Button onClick={() => void handleSubmit()} disabled={isSubmitting}>
-          {isSubmitting ? "Postulando..." : "Confirmar postulacion"}
+          {isSubmitting ? "Postulando..." : "Confirmar postulación"}
         </Button>
       </div>
     </div>
@@ -743,7 +743,7 @@ export function CandidateOpportunitiesClient() {
         content: (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Para evitar duplicados, una misma vacante solo puede recibir una postulacion por candidato.
+              Para evitar duplicados, una misma vacante solo puede recibir una postulación por candidato.
             </p>
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={closeModal}>
@@ -815,7 +815,7 @@ export function CandidateOpportunitiesClient() {
             <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
               <p className="text-sm font-semibold text-primary">Descripcion</p>
               <p className="mt-3 text-sm leading-6 text-foreground">
-                {job.description || "La empresa aun no ha agregado una descripcion detallada."}
+                {job.description || "La empresa aún no ha agregado una descripción detallada."}
               </p>
             </div>
             <div className="rounded-[1.25rem] border border-border/70 bg-background/60 p-4">
@@ -840,7 +840,7 @@ export function CandidateOpportunitiesClient() {
                   <dt className="text-muted-foreground">Experiencia</dt>
                   <dd className="text-right font-medium">
                     {job.minimumYearsExperience && job.minimumYearsExperience > 0
-                      ? `${job.minimumYearsExperience} anos`
+                      ? `${job.minimumYearsExperience} años`
                       : "No especificada"}
                   </dd>
                 </div>
@@ -1201,7 +1201,7 @@ export function CandidateOpportunitiesClient() {
             setAdvancedFilters(filters);
             showToast({
               title: "Filtros aplicados",
-              description: "La lista de ofertas fue actualizada con tu busqueda avanzada.",
+              description: "La lista de ofertas fue actualizada con tu búsqueda avanzada.",
             });
           }}
           onReset={() => {
@@ -1261,7 +1261,7 @@ export function CandidateOpportunitiesClient() {
             <div>
               <CardTitle className="text-xl">Vitrina de ofertas</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
-                Listado de vacantes disponibles para tu exploracion y postulacion.
+                Listado de vacantes disponibles para tu exploración y postulación.
               </p>
             </div>
             <Badge variant="secondary">{filteredJobs.length} resultados</Badge>
@@ -1270,7 +1270,7 @@ export function CandidateOpportunitiesClient() {
             {filteredJobs.length === 0 ? (
               <EmptyState
                 title="No hay ofertas con ese filtro"
-                description="Prueba otra combinacion o limpia la busqueda avanzada para ver mas vacantes."
+                description="Prueba otra combinación o limpia la búsqueda avanzada para ver más vacantes."
                 icon={<Filter className="size-6" />}
                 action={
                   <Button
@@ -1318,7 +1318,7 @@ export function CandidateOpportunitiesClient() {
                           </div>
 
                           <p className="text-sm leading-6 text-muted-foreground">
-                            {job.description || "La empresa aun no ha agregado una descripcion detallada."}
+                            {job.description || "La empresa aún no ha agregado una descripción detallada."}
                           </p>
                         </div>
 
@@ -1399,7 +1399,7 @@ export function CandidateOpportunitiesClient() {
                     </Button>
                   </div>
                   <div className="text-muted-foreground">
-                    Total: {filteredJobs.length} registros. Pag. actual: {jobsPage}. Total paginas: {totalJobPages}
+                    Total: {filteredJobs.length} registros. Pág. actual: {jobsPage}. Total páginas: {totalJobPages}
                   </div>
                 </div>
               </>

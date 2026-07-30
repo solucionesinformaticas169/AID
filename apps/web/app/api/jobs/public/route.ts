@@ -9,7 +9,7 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json(
       {
-        message: error instanceof Error ? error.message : "No se pudieron cargar las ofertas publicas.",
+        message: error instanceof Error ? error.message : "No se pudieron cargar las ofertas públicas.",
       },
       { status: 400 },
     );

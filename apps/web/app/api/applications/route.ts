@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   } catch (error) {
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : "No se pudo registrar la postulacion." },
+      { message: error instanceof Error ? error.message : "No se pudo registrar la postulación." },
       { status: 400 },
     );
   }
